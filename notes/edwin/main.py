@@ -3,16 +3,18 @@
     BioCapsule
     Edwin Sanchez
 
-    Current Objective:
-    - Display live Camera Feed
-    - Capture individual frames w/ a button (display separately from live feed)
-    - Display authentication determination
+    TODO:
+    - Display live Camera Feed (DONE)
+    - Capture individual frames w/ a button (display separately from live feed) (DONE)
+    - Password + Face Auth.
+    - Display authentication determination (current yes/no of authenticator)
     - Get Latency of the system
         - CPU/GPU
         - Non-BC/BC
     - Train Binary Classifier on my face
-    - Password + Face Auth.
-    - Display authentication results (current yes/no of authenticator)
+
+    Other TODO:
+    * Add a README to project
 """
 
 import tkinter as tk # basic gui for quick prototyping
