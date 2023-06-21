@@ -9,7 +9,7 @@ from utils import progress_bar, walk
 
 np.random.seed(42)
 
-
+# older
 class FaceNet:
     """FaceNet: A Unified Embedding for Face Recognition and Clustering
     https://arxiv.org/abs/1503.03832
@@ -74,7 +74,7 @@ class FaceNet:
 
         return self.__model.get_feature(face_img)
 
-
+# newer
 class ArcFace:
     def __init__(self, gpu: int = -1, detector: str = "mtcnn"):
         self.__model = ArcFaceModel(gpu, detector)

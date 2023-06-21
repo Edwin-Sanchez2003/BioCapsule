@@ -51,13 +51,13 @@ def get_rs_features():
     """
     arcface = ArcFace()
 
-    rs_subjects = sorted(os.listdir("images/rs"))
+    rs_subjects = sorted(os.listdir("./rs/"))
     rs_subjects = rs_subjects[4:]
 
     rs_features = np.zeros((6, 512))
     for s_id, subject in enumerate(rs_subjects):
-        for image in os.listdir(f"images/rs/{subject}"):
-            img = cv2.imread(f"images/rs/{subject}/{image}")
+        for image in os.listdir(f"./rs/{subject}"):
+            img = cv2.imread(f"./rs/{subject}/{image}")
             feature = arcface.extract(img)
             rs_features[s_id] = feature
 
@@ -236,7 +236,7 @@ def experiment(
                     y_test_subject, y_pred_subject
                 ).ravel()
 
-        else:
+        else: # bc mode
             train_mask = np.zeros(
                 (train_index.shape[0] + test_index.shape[0]), dtype=bool,
             )
@@ -337,7 +337,7 @@ if __name__ == "__main__":
         "-d",
         "--dataset",
         required=True,
-        choices=["lfw", "gtdb"],
+        choices=["lfw", "gtdb"], # labeled faces in the wild, georgia tech database
         help="dataset to use in experiment",
     )
     parser.add_argument(

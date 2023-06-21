@@ -29,7 +29,7 @@ lazy-object-proxy==1.4.3
 Markdown==3.1.1
 matplotlib==3.1.2
 mccabe==0.6.1
-mxnet==1.6.0
+mxnet-cu100==1.6.0
 networkx==2.4
 numpy==1.16.4
 oauthlib==3.1.0
@@ -56,7 +56,7 @@ scipy==1.4.1
 six==1.13.0
 sklearn==0.0
 tensorboard==1.14.0
-tensorflow==1.14.0
+tensorflow-gpu==1.14.0
 tensorflow-estimator==1.14.0
 termcolor==1.1.0
 typed-ast==1.4.1
