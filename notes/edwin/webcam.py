@@ -13,20 +13,21 @@ from PIL import Image, ImageTk
 import numpy as np
 import tkinter as tk
 
+from typing import Tuple
+
 
 def main():
     # test frame extraction, display, and frame saving
-    frame = get_frame_from_webcam()
+    video_capture = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+    frame = get_frame_from_webcam(video_capture=video_capture)
     display_frame(frame=frame)
     save_img(frame=frame)
 
 
 # gets a frame from the webcam
-def get_frame_from_webcam(camera_id:int=0)-> np.ndarray:
+def get_frame_from_webcam(video_capture)-> np.ndarray:
     # access the a registered camera device, grab a frame
-    vid = cv2.VideoCapture(camera_id, cv2.CAP_DSHOW)
-    _, frame = vid.read()
-    vid.release()
+    _, frame = video_capture.read()
     return frame
 
 
@@ -36,6 +37,14 @@ def get_tk_frame(video_capture)-> ImageTk.PhotoImage:
     cv2img = cv2.cvtColor(video_capture.read()[1], cv2.COLOR_BGR2RGB)
     img = Image.fromarray(cv2img)
     return ImageTk.PhotoImage(image=img)
+
+
+# get tk & normal frames in one go
+def get_tk_and_normal_frames(video_capture)-> Tuple[ImageTk.PhotoImage, np.ndarray]:
+    return (
+            get_frame_from_webcam(video_capture=video_capture),
+            get_tk_frame(video_capture=video_capture)
+        )
 
 
 # display camera feed to tkinter window

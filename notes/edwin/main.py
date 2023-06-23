@@ -1,5 +1,5 @@
 """
-    Master Setup - rapid development
+    Master Setup - Live Active Auth. Testing
     BioCapsule
     Edwin Sanchez
 
@@ -22,6 +22,14 @@ import cv2
 import webcam # convenience functions for accesssing the web cam
 
 from typing import Tuple
+
+# add path to the thingy
+import sys
+sys.path.append('../../src/')
+
+# biocapsule & face recognition
+import src.biocapsule as bc # import biocapsule code
+import src.face as facerec # import face recognition book
 
 
 def main():
@@ -49,12 +57,24 @@ def setup_frame_capture(window:tk.Tk, video_capture)-> Tuple[tk.Button, tk.Label
     captured_frame_label.grid(row=0, column=1)
 
     # what the button should do (in this case, capture a frame and update another label)
+    frame = ()
     def btn_callback()-> None:
         # get img from webcam
-        imgtk = webcam.get_tk_frame(video_capture=video_capture)
+        imgtk, frame = webcam.get_tk_and_normal_frames(video_capture=video_capture)
+        
         # set captured frame label to new image
         captured_frame_label.imgtk = imgtk
         captured_frame_label.configure(image=imgtk)
+
+        # perform authentication!!!!
+
+        """
+            1. Face Pre-processing
+            2. Feat. Ext.
+            3. Compute BioCapsule
+            4. Run Auth.
+        """
+
 
     # create a button to capture frames
     frame_capture_btn = tk.Button(
