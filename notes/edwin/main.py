@@ -29,13 +29,17 @@ def main():
     window = tk.Tk(screenName="BioCapsule")
 
     # get first registered camera
-    video_capture = cv2.VideoCapture(0)
+    video_capture = cv2.VideoCapture(0, cv2.CAP_DSHOW)
     
     # setup parts of GUI
     setup_video_feed(window=window, video_capture=video_capture)
     setup_frame_capture(window=window, video_capture=video_capture)
 
-    window.mainloop() # execute the main loop -> begin display
+    # execute the main loop -> begin display
+    window.mainloop() # blocks execution
+
+    video_capture.release()
+
 
 
 # setup frame capture using the GUI
