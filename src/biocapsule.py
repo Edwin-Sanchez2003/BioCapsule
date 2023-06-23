@@ -5,10 +5,10 @@ from scipy.signal import convolve2d
 class BioCapsuleGenerator:
     def __signature_extraction(self, feature):
         lvl1 = convolve2d(
-            feature.reshape(32, 16),
-            np.ones((5, 5)) / 25.0,
-            mode="same",
-            boundary="wrap",
+            feature.reshape(32, 16), # input vector (reshaped)
+            np.ones((5, 5)) / 25.0, # the sliding window for convolution
+            mode="same", # same size output as input
+            boundary="wrap", # explains padding
         )
 
         lvl2 = feature.reshape(32, 16) - lvl1
