@@ -155,20 +155,29 @@ def extract_dataset(
         is given, CPU is used rather than GPU
 
     """
+
+    # select the model
     if method == "arcface":
         face = ArcFace(gpu, detector)
     else:
         face = FaceNet(gpu, detector)
 
+    # set the path to the dataset
     dataset_path = f"images/{dataset}"
 
+    # find the number of images in the dataset dir
     file_cnt = len(walk(dataset_path))
+
+    # pre-assign space for our features
     features = np.zeros((file_cnt, 513))
 
+    # generate a list of the people in the dataset
     subjects = sorted(
         os.listdir(dataset_path), key=lambda subject: subject.lower()
     )
 
+
+    # generate feat. vectors from all of the images in the dataset
     img_cnt = 0
     for subject_id, subject in enumerate(subjects):
         progress_bar(f"{dataset} {method}", (img_cnt + 1) / file_cnt)
@@ -181,6 +190,7 @@ def extract_dataset(
 
             img_cnt += 1
 
+    # save the features to a numpy storage file
     np.savez_compressed(
         f"data/{dataset}_{method}_{detector}_feat.npz", features
     )

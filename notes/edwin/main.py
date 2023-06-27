@@ -23,13 +23,10 @@ import webcam # convenience functions for accesssing the web cam
 
 from typing import Tuple
 
-# add path to the thingy
-import sys
-sys.path.append('../../src/')
 
 # biocapsule & face recognition
-import src.biocapsule as bc # import biocapsule code
-import src.face as facerec # import face recognition book
+#import src.biocapsule as bc # import biocapsule code
+#import src.face as facerec # import face recognition book
 
 
 def main():
@@ -41,13 +38,12 @@ def main():
     
     # setup parts of GUI
     setup_video_feed(window=window, video_capture=video_capture)
-    setup_frame_capture(window=window, video_capture=video_capture)
+    capt_btn, frame_label = setup_frame_capture(window=window, video_capture=video_capture)
 
     # execute the main loop -> begin display
     window.mainloop() # blocks execution
 
     video_capture.release()
-
 
 
 # setup frame capture using the GUI
@@ -56,17 +52,24 @@ def setup_frame_capture(window:tk.Tk, video_capture)-> Tuple[tk.Button, tk.Label
     captured_frame_label = tk.Label(window)
     captured_frame_label.grid(row=0, column=1)
 
+    # authentication square (green for authenticated, red otherwise)
+    canvas = tk.Canvas(window, width=500, height=240)
+    canvas.grid(row=1,column=0)
+    rectangle = canvas.create_rectangle(100, 100, 400, 400, fill='blue')
+    set_color(canvas=canvas, rectangle=rectangle)
+
     # what the button should do (in this case, capture a frame and update another label)
     frame = ()
     def btn_callback()-> None:
         # get img from webcam
-        imgtk, frame = webcam.get_tk_and_normal_frames(video_capture=video_capture)
+        frame, imgtk = webcam.get_tk_and_normal_frames(video_capture=video_capture)
         
         # set captured frame label to new image
         captured_frame_label.imgtk = imgtk
         captured_frame_label.configure(image=imgtk)
 
-        # perform authentication!!!!
+        # perform authentication!!!! (and set color of auth square)
+        set_color(canvas=canvas, rectangle=rectangle, is_authenticated=is_authorized())
 
         """
             1. Face Pre-processing
@@ -74,7 +77,6 @@ def setup_frame_capture(window:tk.Tk, video_capture)-> Tuple[tk.Button, tk.Label
             3. Compute BioCapsule
             4. Run Auth.
         """
-
 
     # create a button to capture frames
     frame_capture_btn = tk.Button(
@@ -89,6 +91,21 @@ def setup_frame_capture(window:tk.Tk, video_capture)-> Tuple[tk.Button, tk.Label
     frame_capture_btn.grid(row=1, column=1)
 
     return (frame_capture_btn, captured_frame_label)
+
+
+# authenticate the user
+import random
+def is_authorized():
+    return round(random.random()) >= 0.5 # random for now
+
+
+# convenience function for changing the color of the authentication rectangle
+def set_color(canvas:tk.Canvas, rectangle, is_authenticated:bool=False):
+    if is_authenticated:
+        canvas.itemconfig(rectangle, fill='green')
+    else:
+        canvas.itemconfig(rectangle, fill='red')
+
 
 
 # perform process to setup video feed
