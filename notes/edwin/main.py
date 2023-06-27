@@ -23,11 +23,19 @@ import webcam # convenience functions for accesssing the web cam
 
 from typing import Tuple
 
+import pickle
+
+import os
+
+import numpy as np
+from sklearn.linear_model import LogisticRegression
+
+import sys
+sys.path.insert(0, '../../src/')
 
 # biocapsule & face recognition
-#import src.biocapsule as bc # import biocapsule code
-#import src.face as facerec # import face recognition book
-
+import biocapsule as bc
+import face as fr
 
 def main():
     # create window
@@ -36,9 +44,27 @@ def main():
     # get first registered camera
     video_capture = cv2.VideoCapture(0, cv2.CAP_DSHOW)
     
+    # load face model
+    face = fr.ArcFace(0, "mtcnn")
+
+    # load regression model
+    model = load_classifier(pkl_file_path="./edwin_classifier.pkl")
+
+    # create bc_generator
+    bc_gen = bc.BioCapsuleGenerator()
+
+    # load rs_feat
+    rs_feature = get_rs_feature()
+
     # setup parts of GUI
     setup_video_feed(window=window, video_capture=video_capture)
-    capt_btn, frame_label = setup_frame_capture(window=window, video_capture=video_capture)
+    capt_btn, frame_label = setup_frame_capture(
+        window=window, 
+        video_capture=video_capture,
+        feat_ext_model=face,
+        classifier_model=model,
+        bc_generator=bc_gen,
+        rs_feat=rs_feature)
 
     # execute the main loop -> begin display
     window.mainloop() # blocks execution
@@ -47,7 +73,12 @@ def main():
 
 
 # setup frame capture using the GUI
-def setup_frame_capture(window:tk.Tk, video_capture)-> Tuple[tk.Button, tk.Label]:
+def setup_frame_capture(window:tk.Tk, 
+                        video_capture, 
+                        classifier_model, 
+                        feat_ext_model, 
+                        bc_generator, 
+                        rs_feat)-> Tuple[tk.Button, tk.Label]:
     # setup display for captured frame for tkinter window
     captured_frame_label = tk.Label(window)
     captured_frame_label.grid(row=0, column=1)
@@ -68,15 +99,16 @@ def setup_frame_capture(window:tk.Tk, video_capture)-> Tuple[tk.Button, tk.Label
         captured_frame_label.imgtk = imgtk
         captured_frame_label.configure(image=imgtk)
 
-        # perform authentication!!!! (and set color of auth square)
-        set_color(canvas=canvas, rectangle=rectangle, is_authenticated=is_authorized())
+        # get features from user
+        feature = feat_ext_model.extract(frame)
 
-        """
-            1. Face Pre-processing
-            2. Feat. Ext.
-            3. Compute BioCapsule
-            4. Run Auth.
-        """
+        # compute biocapsule
+        biocapsule = bc_generator.biocapsule(user_feature=feature, rs_feature=rs_feat)
+        # perform authentication!!!! (and set color of auth square)
+        set_color(
+            canvas=canvas, 
+            rectangle=rectangle, 
+            is_authenticated=is_authorized(feature=biocapsule, classifier_model=classifier_model))
 
     # create a button to capture frames
     frame_capture_btn = tk.Button(
@@ -93,10 +125,21 @@ def setup_frame_capture(window:tk.Tk, video_capture)-> Tuple[tk.Button, tk.Label
     return (frame_capture_btn, captured_frame_label)
 
 
+# load classifier
+def load_classifier(pkl_file_path):
+    with open(pkl_file_path, "rb") as file:
+        return pickle.load(file)
+
 # authenticate the user
-import random
-def is_authorized():
-    return round(random.random()) >= 0.5 # random for now
+def is_authorized(feature, classifier_model)-> bool:
+    feature = feature.reshape(1, -1)
+    print(feature)
+    pred = classifier_model.predict(feature)
+    print(pred)
+    if pred >= 0.5:
+        return True
+    else:
+        return False
 
 
 # convenience function for changing the color of the authentication rectangle
@@ -107,7 +150,6 @@ def set_color(canvas:tk.Canvas, rectangle, is_authenticated:bool=False):
         canvas.itemconfig(rectangle, fill='red')
 
 
-
 # perform process to setup video feed
 def setup_video_feed(window:tk.Tk, video_capture)-> None:
     # setup display for video for tkinter window
@@ -116,6 +158,26 @@ def setup_video_feed(window:tk.Tk, video_capture)-> None:
 
     # display camera feed to window
     webcam.display_camera(video_capture=video_capture, video_label=video_label)
+
+
+def get_rs_feature():
+    """Return ArcFace features for 6 predetermined Reference Subjects
+    (RSs) used in this experiment for reproducibility.
+
+    """
+    arcface = fr.ArcFace()
+
+    rs_subjects = sorted(os.listdir("../../rs/"))
+    rs_subjects = rs_subjects[4:]
+
+    rs_features = np.zeros((6, 512))
+    for s_id, subject in enumerate(rs_subjects):
+        for image in os.listdir(f"../../rs/{subject}"):
+            img = cv2.imread(f"../../rs/{subject}/{image}")
+            feature = arcface.extract(img)
+            rs_features[s_id] = feature
+
+    return rs_features[0][:]
 
 if __name__ == "__main__":
     main()

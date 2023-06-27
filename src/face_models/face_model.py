@@ -113,7 +113,7 @@ class MtcnnModel:
         else:
             ctx = mx.gpu(gpu)
 
-        self.model_path = "src/face_models/models/mtcnn"
+        self.model_path = "S:\\NSF-REU-Research-Summer-2023\\project\\BioCapsule\\src\\face_models\\models\\mtcnn"
         self.__model = self.__load_model(ctx)
 
     def __load_model(self, ctx: int):
@@ -307,7 +307,7 @@ class ArcFaceModel:
         else:
             ctx = mx.gpu(gpu)
 
-        self.model_path = "src/face_models/models/arcface/model"
+        self.model_path = "S:\\NSF-REU-Research-Summer-2023\\project\\BioCapsule\\src\\face_models\\models\\arcface\\model"
         self.__model = self.__load_model(ctx)
 
         if detector == "mtcnn":

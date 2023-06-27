@@ -7,23 +7,29 @@
     Store Classifier to use during active Auth.
 """
 
-import src.biocapsule as bc
-import src.face_models as fr
+import sys
+sys.path.insert(0, '../../src/')
 
-import tensorflow as tf
+import os
+
+import biocapsule as bc
+import face as fr
 
 import cv2
 import numpy as np
 
+from sklearn.linear_model import LogisticRegression
+
+import pickle
 
 # Set random seed for reproducibility
 np.random.seed(42)
 
 def main():
-    pass
+    train_classifier(extract=False)
 
 
-def train_classifier(x_train, y_train):
+def train_classifier(extract=False):
     """
         Train Classifier
         ------
@@ -42,13 +48,62 @@ def train_classifier(x_train, y_train):
         for a given user.
     """
 
+    # extract the dataset features (& store)
+    if extract:
+        fr.extract_dataset("lfw", gpu=0, add_new=True)
 
+    # load features from file
+    features = np.load(f"../../data/lfw_arcface_mtcnn_feat_edwin.npz")["arr_0"]
+    
+    # load rs feature for bc generation
+    rs_feature = get_rs_feature()
 
-    clf = LogisticRegression(
+    # generate biocapsules
+    bc_gen = bc.BioCapsuleGenerator()
+
+    x_train = []
+    for feature in features:
+        feature = feature[:-1]
+        x_train.append(bc_gen.biocapsule(user_feature=feature, rs_feature=rs_feature))
+
+    # generate labels for bcs
+    y_train = np.zeros(shape=len(x_train))
+
+    # the index of the images where mine are
+    edwin_index_begin = len(x_train) - 14
+    for i in range(14):
+        y_train[(edwin_index_begin + i)] = 1
+
+    # train model
+    edwin_classifier = LogisticRegression(
         class_weight="balanced", random_state=42
-    ).fit(X_train_bianry, y_train_binary)
+    ).fit(x_train, y_train)
 
-    y_pred = clf.predict(X_test_bianry)
+    # save model to pickle file
+    pkl_classifier_file_name = "edwin_classifier.pkl"
+    with open(pkl_classifier_file_name, "wb") as file:
+        pickle.dump(edwin_classifier, file)
+
+
+def get_rs_feature():
+    """Return ArcFace features for 6 predetermined Reference Subjects
+    (RSs) used in this experiment for reproducibility.
+
+    """
+    arcface = fr.ArcFace()
+
+    rs_subjects = sorted(os.listdir("../../rs/"))
+    rs_subjects = rs_subjects[4:]
+
+    rs_features = np.zeros((6, 512))
+    for s_id, subject in enumerate(rs_subjects):
+        for image in os.listdir(f"../../rs/{subject}"):
+            img = cv2.imread(f"../../rs/{subject}/{image}")
+            feature = arcface.extract(img)
+            rs_features[s_id] = feature
+
+    return rs_features[0][:]
+
 
 if __name__ == "__main__":
     main()

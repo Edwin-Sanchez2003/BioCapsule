@@ -134,6 +134,7 @@ def extract_dataset(
     detector: str = "mtcnn",
     flipped: bool = True,
     gpu: int = -1,
+    add_new: bool = False
 ):
     """Extract feature vectors of each image within a dataset.
     Save array conatining all extracted features to disk.
@@ -153,7 +154,8 @@ def extract_dataset(
     gpu: int = -1
         GPU id to use for feature extraction and preprocessing models. If -1
         is given, CPU is used rather than GPU
-
+    add_new: bool = False
+        Add some new images to the features -> these are for testing active authentication
     """
 
     # select the model
@@ -163,22 +165,27 @@ def extract_dataset(
         face = FaceNet(gpu, detector)
 
     # set the path to the dataset
-    dataset_path = f"images/{dataset}"
+    dataset_path = f"S:\\NSF-REU-Research-Summer-2023\\project\\BioCapsule\\images\\{dataset}"
 
     # find the number of images in the dataset dir
     file_cnt = len(walk(dataset_path))
 
+    # check if add_new is true
+    edwin_images_dir = "S:\\NSF-REU-Research-Summer-2023\\project\\BioCapsule\\images\\edwin-imgs\\"
+    if add_new:
+        file_cnt += len(walk(edwin_images_dir))
+
     # pre-assign space for our features
-    features = np.zeros((file_cnt, 513))
+    features = np.zeros((file_cnt, 513)) # ???
 
     # generate a list of the people in the dataset
     subjects = sorted(
         os.listdir(dataset_path), key=lambda subject: subject.lower()
     )
 
-
+    print("extract dataset")
     # generate feat. vectors from all of the images in the dataset
-    img_cnt = 0
+    img_cnt = 0    
     for subject_id, subject in enumerate(subjects):
         progress_bar(f"{dataset} {method}", (img_cnt + 1) / file_cnt)
 
@@ -187,14 +194,29 @@ def extract_dataset(
 
             feature = face.extract(img)
             features[img_cnt, :] = np.append(feature, subject_id + 1)
-
             img_cnt += 1
 
-    # save the features to a numpy storage file
-    np.savez_compressed(
-        f"data/{dataset}_{method}_{detector}_feat.npz", features
-    )
+    # add in my images to feature set
+    edwin_subj_id = len(subjects) + 1
+    for image in os.listdir(edwin_images_dir):
+        img = img = cv2.imread(f"{edwin_images_dir}{image}")
 
+        feature = face.extract(img)
+        features[img_cnt, :] = np.append(feature, edwin_subj_id)
+        img_cnt += 1
+
+    data_dir = "S:\\NSF-REU-Research-Summer-2023\\project\\BioCapsule\\data\\"
+    # save the features to a numpy storage file
+    if add_new:
+        np.savez_compressed(
+            f"{data_dir}{dataset}_{method}_{detector}_feat_edwin.npz", features
+        )
+    else:
+        np.savez_compressed(
+            f"{data_dir}{dataset}_{method}_{detector}_feat.npz", features
+        )
+
+    # create a second set, store flipped version of the feature vectors
     if flipped:
         flipped_features = np.zeros((file_cnt, 513))
 
@@ -215,9 +237,14 @@ def extract_dataset(
 
                 img_cnt += 1
 
-        np.savez_compressed(
-            f"data/{dataset}_{method}_{detector}_flip_feat.npz", features
-        )
+        if add_new:
+            np.savez_compressed(
+                f"{data_dir}{dataset}_{method}_{detector}_flip_feat_edwin.npz", features
+            )
+        else:
+            np.savez_compressed(
+                f"{data_dir}{dataset}_{method}_{detector}_flip_feat.npz", features
+            )
 
 
 if __name__ == "__main__":
