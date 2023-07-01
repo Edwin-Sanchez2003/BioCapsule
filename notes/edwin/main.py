@@ -7,11 +7,9 @@
     - Display live Camera Feed (DONE)
     - Capture individual frames w/ a button (display separately from live feed) (DONE)
     - Password + Face Auth.
-    - Display authentication determination (current yes/no of authenticator)
     - Get Latency of the system
         - CPU/GPU
         - Non-BC/BC
-    - Train Binary Classifier on my face
 
     Other TODO:
     * Add a README to project
@@ -26,6 +24,9 @@ from typing import Tuple
 import pickle
 
 import os
+import time
+import json
+import copy
 
 import numpy as np
 from sklearn.linear_model import LogisticRegression
@@ -38,6 +39,10 @@ import biocapsule as bc
 import face as fr
 
 def main():
+    # test the latency of the system
+    #get_latency()
+    #return
+
     # create window
     window = tk.Tk(screenName="BioCapsule")
 
@@ -130,11 +135,13 @@ def load_classifier(pkl_file_path):
     with open(pkl_file_path, "rb") as file:
         return pickle.load(file)
 
+
 # authenticate the user
 def is_authorized(feature, classifier_model)-> bool:
     feature = feature.reshape(1, -1)
     print(feature)
-    pred = classifier_model.predict(feature)
+    print(feature.shape)
+    pred = classifier_model.predict_proba(feature)
     print(pred)
     if pred >= 0.5:
         return True
@@ -178,6 +185,80 @@ def get_rs_feature():
             rs_features[s_id] = feature
 
     return rs_features[0][:]
+
+
+# gets the latency of the system: preprocessing, feat. ext., bc gen, and classification
+def get_latency():
+    video_capture = cv2.VideoCapture(0, cv2.CAP_DSHOW) # get first registered camera
+    face = fr.ArcFace(0, "mtcnn") # load face model
+    model = load_classifier(pkl_file_path="./edwin_classifier.pkl") # load regression model
+    bc_gen = bc.BioCapsuleGenerator() # create bc_generator
+    rs_feature = get_rs_feature() # load rs_feat
+
+
+    
+    # step 1: get image from camera
+    start_time_frame_cap = time.time_ns()
+    _, frame = video_capture.read()
+    end_time_frame_cap = time.time_ns()
+
+    # step 2: perform preprocessing and feat. ext.
+    start_time_preprocessing = time.time_ns()    
+    feat_vector = face.preprocess(frame)
+    end_time_preprocessing = time.time_ns()
+
+    start_time_feat_ext = time.time_ns()    
+    feat_vector = face.extract(face_img=frame, align=False)
+    end_time_feat_ext = time.time_ns()
+
+    # step 3: generate biocapsule
+    start_time_bc_gen = time.time_ns()
+    biocapsule = bc_gen.biocapsule(user_feature=feat_vector, rs_feature=rs_feature)
+    end_time_bc_gen = time.time_ns()
+
+    # step 4: classify the biocapsule
+    start_time_prediction = time.time_ns()
+    biocapsule = biocapsule.reshape(1, -1)
+    pred = model.predict(biocapsule)
+    end_time_prediction = time.time_ns()
+
+    # compute time difference in seconds
+    frame_cap = comp_time_diff(end_time_frame_cap, start_time_frame_cap)
+    preprocess = comp_time_diff(end_time_preprocessing, start_time_preprocessing)
+    feat_ext = comp_time_diff(end_time_feat_ext, start_time_feat_ext)
+    bc_gen_time = comp_time_diff(end_time_bc_gen, start_time_bc_gen)
+    pred_time = comp_time_diff(end_time_prediction, start_time_prediction)
+
+    total = frame_cap["time (sec)"] + preprocess["time (sec)"] + feat_ext["time (sec)"] + bc_gen_time["time (sec)"] + pred_time["time (sec)"]
+
+    time_data = {
+        "frame cap": frame_cap,
+        "preprocess": preprocess,
+        "feat_ext": feat_ext,
+        "bc_gen_time": bc_gen_time,
+        "pred": pred_time,
+        "total (sec)": total
+    }
+
+    write_to_json(time_data, "time_test.json")
+
+
+def comp_time_diff(end_time, start_time):
+    times = ((end_time - start_time) / (10 ** 9), end_time - start_time)
+    time_data = {
+        "start time": start_time,
+        "end time": end_time,
+        "time (ns)": times[1],
+        "time (sec)": times[0]
+    } # end data dict
+    return copy.deepcopy(time_data)
+
+
+# writes a dictionary to a file as a json file
+def write_to_json(data:dict, file_name:str)-> None:
+    with open(file_name, "w") as file:
+        file.write(json.dumps(data))
+
 
 if __name__ == "__main__":
     main()
