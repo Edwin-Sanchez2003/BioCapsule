@@ -27,7 +27,8 @@ The data below is collected for each frame of the video:
 
 * **num_faces_detected:** *(int)* The number of faces detected in  the video. In most cases this will be one, but some videos have no faces.
 * **frame_num:** *(int)* The index of the frame from the video that the feature vector came from.
-* **time_stamp:** *(float)* The time during the video from which the frame was taken, in miliseconds.
+* **time_stamp:** *(float)* The time during the video from which the frame was taken, in seconds.
+* **preprocessing_tensor:** The output from the preprocessing step.
 * **feature_vector:** The resulting feature vector (of the person) derived from the frame, after preprocessing and feature extraction.
 
 ## Config File Format
@@ -58,3 +59,7 @@ The pre-sets section in the config file specify important details about the vide
 These will need to be specified for the program to run. This is to document important details about the video, specific to the MOBIO dataset.
 
 However, if you wish to ingore presets, you can do so with the **ignore_presets** parameter in the config file. These details will be excluded from the generated JSON files.
+
+
+## Other Notes
+* To jsonify a numpy array & unjsonify, read this article: https://stackoverflow.com/questions/26646362/numpy-array-is-not-json-serializable

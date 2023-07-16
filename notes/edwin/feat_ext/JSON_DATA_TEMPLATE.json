@@ -1,6 +1,8 @@
 {
     "location": "",
+    "file_name": "",
     "total_frames": 0,
+    "video_fps": 0,
     "video_name": "",
     "subject_ID": "",
     "session_ID": 1,
@@ -14,6 +16,7 @@
             "frame_num": 0,
             "time_stamp": 0,
             "num_faces_detected": 1,
+            "preprocessing_tensor": [0],
             "feature_vector": [0]
         }
     ]

@@ -1,5 +1,5 @@
 {
-    "input_path": "S:\\NSF-REU-Research-Summer-2023\\MOBIO\\but_laptop\\but\\f401\\01_laptop",
+    "input_path": "S:\\NSF-REU-Research-Summer-2023\\MOBIO\\but_phase1\\but\\f401\\01_mobile\\f401_01_f12_i0_0.mp4",
     "output_dir": "./test/",
     "json_template_path": "./JSON_DATA_TEMPLATE.json",
     "file_extensions": [
@@ -7,8 +7,8 @@
         ".mp4"
     ],
     "pre_proc_model": "MTCNN",
-    "feat_ext_model": "FaceNet",
-    "max_num_processes": 12,
+    "feat_ext_model": "ArcFace",
+    "max_num_processes": 1,
     "apply_partial_occlusion": false,
     "ignore_pre_sets": false,
     "pre_sets": {

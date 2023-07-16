@@ -40,7 +40,7 @@ def get_tk_frame(video_capture)-> ImageTk.PhotoImage:
 
 
 # get tk & normal frames in one go
-def get_tk_and_normal_frames(video_capture)-> Tuple[ImageTk.PhotoImage, np.ndarray]:
+def get_tk_and_normal_frames(video_capture)-> Tuple[np.ndarray, ImageTk.PhotoImage]:
     return (
             get_frame_from_webcam(video_capture=video_capture),
             get_tk_frame(video_capture=video_capture)
