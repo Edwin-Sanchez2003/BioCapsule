@@ -29,3 +29,8 @@ The data below is collected for each frame of the video:
 * **frame_num:** *(int)* The index of the frame from the video that the feature vector came from.
 * **time_stamp:** *(float)* The time during the video from which the frame was taken, in miliseconds.
 * **feature_vector:** The resulting feature vector (of the person) derived from the frame, after preprocessing and feature extraction.
+
+## Config File Format
+This file is a JSON file passed in as a parameter to the program and specifies certain properties of the program and the extraction process. The format is specified below:
+
+* ****

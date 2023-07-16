@@ -16,7 +16,7 @@ import multiprocessing
 
 def main():
     # load the config file detailing parameters
-
+    # for feature extraction
     pass
 
 
