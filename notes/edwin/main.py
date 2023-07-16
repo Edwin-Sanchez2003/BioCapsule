@@ -143,7 +143,7 @@ def is_authorized(feature, classifier_model)-> bool:
     print(feature.shape)
     pred = classifier_model.predict_proba(feature)
     print(pred)
-    if pred >= 0.5:
+    if pred[0][1] >= 0.5:
         return True
     else:
         return False
