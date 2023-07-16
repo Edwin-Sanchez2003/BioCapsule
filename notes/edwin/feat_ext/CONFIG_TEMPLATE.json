@@ -2,9 +2,13 @@
     "input_path": "S:\\NSF-REU-Research-Summer-2023\\MOBIO\\but_laptop\\but\\f401\\01_laptop",
     "output_dir": "./test/",
     "json_template_path": "./JSON_DATA_TEMPLATE.json",
+    "file_extensions": [
+        ".mov",
+        ".mp4"
+    ],
     "pre_proc_model": "MTCNN",
     "feat_ext_model": "FaceNet",
-    "max_num_processes": 20,
+    "max_num_processes": 12,
     "apply_partial_occlusion": false,
     "ignore_pre_sets": false,
     "pre_sets": {

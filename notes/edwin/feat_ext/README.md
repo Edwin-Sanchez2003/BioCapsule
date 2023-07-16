@@ -36,6 +36,7 @@ This file is a JSON file passed in as a parameter to the program and specifies c
 * **input_path:** *(string)* The directory containing a list of videos OR the path to a single video.
 * **output_dir:** *(string)* The directory to store the file. File names are generated based on subjectID, sessionID, and the device that the video came from.
 * **json_template_path:** The path to the JSON_DATA_TEMPLATE.json file, which is used as a starting point for the json file to be stored.
+* **file_extentions:** The file extensions to search for when looking for videos to get feature vectors from.
 * **pre_proc_model:** *(string)* The model to use for preprocessing. *Limited to options set in code.
 * **feat_ext_model:** *(string)* The model to use for feature extraction. *Limited to options set in code.
 * **max_num_processes:** *(int)* The number of processes to run to maximize CPU utilization. Defaults to 1.
