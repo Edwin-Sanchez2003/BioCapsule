@@ -9,6 +9,7 @@ images/NUAA/
 *.txt
 *.npz
 *.hdf5
+*.json
 
 src/face_models/models
 
