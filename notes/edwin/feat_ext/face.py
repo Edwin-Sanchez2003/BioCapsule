@@ -5,7 +5,7 @@ import cv2
 import numpy as np
 
 import sys
-sys.path.insert(0, '../../../src/')
+sys.path.insert(0, './src/')
 
 from face_models import ArcFaceModel, FaceNetModel
 from utils import progress_bar, walk
@@ -168,13 +168,13 @@ def extract_dataset(
         face = FaceNet(gpu, detector)
 
     # set the path to the dataset
-    dataset_path = f"S:\\NSF-REU-Research-Summer-2023\\project\\BioCapsule\\images\\{dataset}"
+    dataset_path = f"../../../images/{dataset}"
 
     # find the number of images in the dataset dir
     file_cnt = len(walk(dataset_path))
 
     # check if add_new is true
-    edwin_images_dir = "S:\\NSF-REU-Research-Summer-2023\\project\\BioCapsule\\images\\edwin-imgs\\"
+    edwin_images_dir = f"../../../images/edwin-imgs/"
     if add_new:
         file_cnt += len(walk(edwin_images_dir))
 
@@ -208,7 +208,7 @@ def extract_dataset(
         features[img_cnt, :] = np.append(feature, edwin_subj_id)
         img_cnt += 1
 
-    data_dir = "S:\\NSF-REU-Research-Summer-2023\\project\\BioCapsule\\data\\"
+    data_dir = "../../../data/"
     # save the features to a numpy storage file
     if add_new:
         np.savez_compressed(

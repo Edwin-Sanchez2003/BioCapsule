@@ -1,5 +1,5 @@
 {
-    "input_path": "S:\\NSF-REU-Research-Summer-2023\\MOBIO\\but_phase1\\but\\f401\\01_mobile\\f401_01_f12_i0_0.mp4",
+    "input_path": "/home/edwsanch/Documents/BioCapsuleResearch/MOBIO/but_phase1/but/f401/01_mobile/",
     "output_dir": "./test/",
     "json_template_path": "./JSON_DATA_TEMPLATE.json",
     "file_extensions": [
@@ -16,6 +16,6 @@
         "subject_ID": "f401",
         "session_ID": 1,
         "phase": 1,
-        "device": "laptop"
+        "device": "mobile"
     }
 }

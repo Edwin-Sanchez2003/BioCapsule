@@ -70,13 +70,16 @@ def main():
     #test_data_json("./test/f401_1_laptop_file_0.json")
     #return
 
+    # load face model w/ preprocessing model
+    model = fr.ArcFace(0) # hardcoded to ArcFace w/MTCNN!
+
     # load the config file detailing parameters
     config_data, template_data = load_configurations(config_file_path=args.config_file_path)
     input = {
         "file_name": "",
         "index": 0,
         "data": copy.deepcopy(template_data),
-        "output_dir": copy.deepcopy(config_data["output_dir"])
+        "output_dir": copy.deepcopy(config_data["output_dir"]),
     } # end template input
 
     # decide how many processes to generate
@@ -102,8 +105,10 @@ def main():
 
         # generate processes to do feature extraction
         print(f"Creating {max_num_processes} process(es)...")
-        with multiprocessing.Pool(max_num_processes) as p:
-            p.map(process_feat_ext, params_list)
+        #with multiprocessing.Pool(max_num_processes) as p:
+            #p.map(process_feat_ext, params_list)
+        for param in params_list:
+            process_feat_ext(input=param, model=model)
     else: # only a single video - only need to do proc_feat_ext once
         input["file_name"] = config_data["input_path"]
         process_feat_ext(input=input)
@@ -155,7 +160,7 @@ def load_configurations(config_file_path:str)-> "tuple[dict,dict]":
 
 
 # do the work of one process
-def process_feat_ext(input:dict)-> None:
+def process_feat_ext(input:dict, model)-> None:
     """
     load preprocessing model
     load in feat ext model
@@ -171,8 +176,8 @@ def process_feat_ext(input:dict)-> None:
     data:dict = input["data"]
 
     # load face model w/ preprocessing model
-    model = fr.ArcFace(0) # hardcoded to ArcFace w/MTCNN!
-    
+    # model = fr.ArcFace(0) # hardcoded to ArcFace w/MTCNN!
+
 
     # load video
     video = cv2.VideoCapture(input["file_name"])
