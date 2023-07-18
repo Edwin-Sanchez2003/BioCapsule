@@ -26,11 +26,7 @@ import numpy as np
 import cv2
 
 from multiprocessing import Pool
-from threading import Thread
 import time
-
-# create a list to contain threads spawned from file writing
-file_writer_ths:"list[Thread]" = []
 
 # import module to do img processing
 import face as fr
@@ -43,9 +39,9 @@ presets_list = [
     # three per location, for 'phase 1 laptop', 'phase 1 mobile', and 'phase 2 mobile' folders
 
     # but location
-    #[ 0, "but", 1, "laptop", True, f"{path_to_mobio}but_laptop/", "./MOBIO_extracted/but/"],
-    [ 0, "but", 1, "mobile/phone", True, f"{path_to_mobio}but_phase1/", "./MOBIO_extracted/but/"],
-    [ 0, "but", 2, "mobile/phone", True, f"{path_to_mobio}but_phase2/", "./MOBIO_extracted/but/"],
+    [ 0, "but", 1, "laptop", True, f"{path_to_mobio}but_laptop/", "./MOBIO_extracted/but/"],
+    #[ 0, "but", 1, "mobile/phone", True, f"{path_to_mobio}but_phase1/", "./MOBIO_extracted/but/"],
+    #[ 0, "but", 2, "mobile/phone", True, f"{path_to_mobio}but_phase2/", "./MOBIO_extracted/but/"],
 
     # idiap location
     #[ 0, "idiap", 1, "laptop", True, f"{path_to_mobio}idiap_laptop/", "./MOBIO_extracted/idiap/"],
@@ -122,80 +118,129 @@ def main():
 
         # walk through a directory containing info
         for (dir_path, dir_names, file_names) in os.walk(PRESETS.input_dir, topdown=True):
-            # loop over files found in dir
+            # loop over files found in dir, adding files to the session list
+            session_file_names = [] # videos all in the same folder (MOBIO)
             for file_name in file_names:
                 # check if file is a video file
                 if is_in_list(os.path.splitext(os.path.basename(file_name))[1], MOBIO.VIDEO_TYPES):
                     # avoid bad files
                     if file_name[:2] != "._":
-                        # perform extraction
-                        tic = time.perf_counter()
-                        print(f"Extracting {file_name} from {PRESETS.input_dir} ({PRESETS.LOCATION})")
-                        extract_video(
-                            output_dir=PRESETS.output_dir,
-                            file_path=os.path.join(dir_path, file_name),
-                            model=model
-                        ) # end extract video function
-                        toc = time.perf_counter()
-                        print(f"Time to extract the video: {toc - tic:0.4f} seconds")
+                        f_name = os.path.join(dir_path, file_name)
+                        session_file_names.append(f_name)
+            
+            # check if there are any videos to extract from
+            if len(session_file_names) > 0:
+                # sort the files to be in the right order
+                print("Started Sorting")
+                session_file_names = put_files_in_order(session_file_names)
+                print("Finished Sorting")
+                # pass the videos found in the session folder
+                # to the extraction function
+                print(f"Extracting {file_name} from {PRESETS.input_dir} ({PRESETS.LOCATION})")
+                extract_video(
+                    output_dir=PRESETS.output_dir,
+                    file_paths=session_file_names,
+                    model=model
+                ) # end extract video function
 
-        # wait for remaining threads to finish (if applicable)
-        for thread in file_writer_ths:
-            thread.join()
+
+# puts the files in order, from 1 to 21
+def put_files_in_order(old_list:"list[str]")-> "list[str]":
+    # loop over file names and get their corresponding recording_num
+    tmp_list = []
+    for file_name in old_list:
+        base_name = os.path.basename(file_name)
+        recording_num = int(base_name[9:11])
+        print(recording_num)
+        tmp_list.append((file_name, recording_num))
+
+    # sort 
+    sorted_list:"list[str]" = []
+    keepGoing = True
+    sentry = 1
+    while keepGoing:
+        for file_name, recording_num in tmp_list:
+            if recording_num == sentry:
+                sorted_list.append(file_name)
+                sentry += 1
+        if len(sorted_list) == len(old_list):
+            keepGoing = False
+    return sorted_list
 
 
 # extract important details from the video & save to dict
-def extract_video(output_dir:str, file_path:str, model):
-    # load video
-    video = cv2.VideoCapture(file_path)
-    fps = int(video.get(cv2.CAP_PROP_FPS))
-    print(f"Video fps: {fps}")
+def extract_video(output_dir:str, file_paths:"list[str]", model):
+    # loop over every video given (from the session)
+    current_time = float(0.0)
+    frame_data = [] # list to store data from each frame extracted
+    for file_path in file_paths:
+        tic = time.perf_counter()
+        recording_num = os.path.basename(file_path)[9:11]
+        # load video
+        video = cv2.VideoCapture(file_path)
+        fps = int(video.get(cv2.CAP_PROP_FPS))
 
-    # loop over frames
-    keepGoing = True
-    frame_num = 0
-    feature_vectors = [] # list to store feature vectors
-    while keepGoing:
-        # get a frame from the video
-        ret, frame = video.read()
+        # loop over frames
+        keepGoing = True
+        frame_num = 0
+        print(f"Processing video. Recording_num: {recording_num}")
+        while keepGoing:
+            # get a frame from the video
+            ret, frame = video.read()
 
-        # exit if we hit the last frame
-        if ret == False:
-            keepGoing = False
-            continue
+            # exit if we hit the end of the video
+            if ret == False:
+                keepGoing = False
+                continue
+            
+            # increment time
+            current_time += float(1/fps)
+            if current_time >= 10.00: #check if we hit the 10 second mark, then process the frame
+                current_time = 0.0
 
-        # convert image to the format we need
-        # should I do this? input for models say input should be BGR, but this still works...
-        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                # pass img through preprocessing
+                pre_proc_data:"tuple[np.ndarray, int]" = model.preprocess(face_img=frame)
+                img_pre_processed = pre_proc_data[0]
+                num_faces = pre_proc_data[1]
 
-        # pass img through preprocessing
-        img_pre_processed:np.ndarray = model.preprocess(face_img=frame)
+                # pass img through feature extraction
+                feature_vector:np.ndarray = model.extract(face_img=img_pre_processed, align=False)
 
-        # pass img through feature extraction
-        feature_vector:np.ndarray = model.extract(face_img=img_pre_processed, align=False)
+                # the feature vector used for every frame of the video
+                feature_vector_container = {
+                    "frame_num": frame_num, # the index of the frame in the video, starting from 0
+                    "time_stamp (milisec)": video.get(cv2.CAP_PROP_POS_MSEC), # time stamp from video at the frame in miliseconds
+                    "recording_num": recording_num, # the video that this came from (1-21)
+                    "frame_num": frame_num, # the frame that this came from in the video (0 for first frame)
+                    "video_name": file_path, # name of the video this feature came from
+                    "fps": fps, # video's fps
+                    "num_faces_detected": num_faces, # how many faces detected
+                    "preprocessing_tensors": {
+                        "mtcnn": img_pre_processed.tolist() # img ndarray from MTCNN
+                    }, # end preprocessing tensors
+                    "feature_vectors": {
+                        "arcface": feature_vector.tolist() # feature vector from feat ext model (ie. FaceNet or ArcFace)
+                    }, # end feature vectors
+                } # end example feature vector
 
-        # the feature vector used for every frame of the video
-        feature_vector_container = {
-            "frame_num": frame_num, # the index of the frame in the video, starting from 0
-            "time_stamp (milisec)": video.get(cv2.CAP_PROP_POS_MSEC), # time stamp from video at the frame in miliseconds
-            "num_faces_detected": 1, # how many faces detected (hard coded) - default to 1 for now
-            "preprocessing_tensor": img_pre_processed.tolist(), # img ndarray from MTCNN
-            "feature_vector": feature_vector.tolist() # feature vector from feat ext model (ie. FaceNet or ArcFace)
-        } # end example feature vector
+                # copy feature vector container to array
+                # deep copy to avoid ptr problems
+                frame_data.append(copy.deepcopy(feature_vector_container))
 
-        # copy feature vector container to array
-        # deep copy to avoid ptr problems
-        feature_vectors.append(copy.deepcopy(feature_vector_container))
+            # increment frame number
+            frame_num += 1
+        # end while loop for one video
 
-        # increment frame number
-        frame_num += 1
+        toc = time.perf_counter()
+        print(f"Time to extract the video: {toc - tic:0.4f} seconds")
+    # end for loop over videos
 
+    tic = time.perf_counter()
     # get parts of the path to add as metadata to json file
-    base_name = os.path.basename(file_path)
+    base_name = os.path.basename(file_paths[0])
     subject_ID = base_name[:4] # first 4 char of video file name
     session_ID = base_name[5:7] # next 2 char from video file name, after underscore
     gender = base_name[:1] # first character of the video file name
-    recording_num = base_name[9:11] # char 10 & 11 - recording number
 
     # data dict format for output json files
     data = {
@@ -205,34 +250,29 @@ def extract_video(output_dir:str, file_path:str, model):
             "device": PRESETS.DEVICE,
             "subject_ID": subject_ID, # string (ex: 'f404')
             "session_ID": session_ID, # string from 1 - 12
-            "gender": gender, # string (ex: 'f' for female, 'm' for male)
-            "recording_num": recording_num, # which recording during the session  - number from 1 to 21
+            "gender": gender # string (ex: 'f' for female, 'm' for male)
         }, # end MOBIO specific data for video
-        "file_name": base_name, # original video file name
-        "total_frames": frame_num, # frame count of video
-        "video_fps": fps, # fps of video
-        "pre_proc_model": "MTCNN", # model used for preprocessing - default MTCNN
-        "feat_ext_model": "ArcFace", # model used for feature extraction - default ArcFace
+        "file_names": file_paths, # original video file names (in order)
         "feat_vect_length": 512, # length of the feature vectors - default 512
-        "feature_vectors": feature_vectors # the feature vectors and other data pulled from each frame of the video
+        "frame_data": frame_data # the feature vectors and other data pulled from each frame of the video
     } # end data dict
 
     # create name of new file
-    name = f"{os.path.splitext(base_name)[0]}.json.gz"
+    name = f"{PRESETS.LOCATION}_{PRESETS.DEVICE}_{subject_ID}_{session_ID}.json.gz"
     output_path = os.path.join(output_dir, name)
 
-    # create a thread to compresss & write data to a file
-    tic = time.perf_counter()
-    file_writer_ths.append(Thread(target=write_to_json_gz, args=(output_path, data)))
-    file_writer_ths[-1].start()
+    # compresss & write data to a file
+    write_to_json_gz(file_path=output_path, data=data)
     toc = time.perf_counter()
-    print(f"Time to create thread: {toc - tic:0.4f} seconds")
+    print(f"Time to write to file: {toc - tic:0.4f} seconds")
 
 
 # tests data from a video to make sure its use-able
 def test_data_json_gz(file_path:str):
     data = load_json_gz_file(file_path=file_path)
-    feat_vect = data["feature_vectors"][0]["feature_vector"]
+    print(data["MOBIO"])
+    print(data["frame_data"][0])
+    feat_vect = data["frame_data"][0]["feature_vectors"]["arcface"]
     feat_vect_np = np.array(feat_vect)
     print(feat_vect)
     print("")

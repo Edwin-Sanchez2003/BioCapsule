@@ -26,7 +26,7 @@ class FaceNet:
         """
         self.__model = FaceNetModel(gpu, detector)
 
-    def preprocess(self, face_img: np.ndarray) -> np.ndarray:
+    def preprocess(self, face_img: np.ndarray) -> "tuple[np.ndarray, int]":
         """Preprocess facial image for FaceNet feature extraction
         using a MTCNN preprocessing model. MTCNN detects facial bounding
         boxes and facial landmarks to get face region-of-interest and perform
@@ -39,8 +39,13 @@ class FaceNet:
 
         Returns
         -------
+        tuple: (np.ndarray, int)
+
         np.ndarray
-            Aligned facial image of shape 160x160x3 with RGB colorspace
+            Aligned facial image of shape 160x160x3 with RGB colorspace (closest
+            face to the center of the image if multiple faces are detected)
+        int
+            the number of faces detected by the model
 
         """
         return self.__model.get_input(face_img)
@@ -63,7 +68,7 @@ class FaceNet:
 
         """
         if align:
-            face_img = self.preprocess(face_img)
+            face_img, _ = self.preprocess(face_img)
 
         if face_img.shape != (160, 160, 3):
             if len(face_img.shape) == 2:
@@ -79,7 +84,7 @@ class ArcFace:
     def __init__(self, gpu: int = -1, detector: str = "mtcnn"):
         self.__model = ArcFaceModel(gpu, detector)
 
-    def preprocess(self, face_img: np.ndarray) -> np.ndarray:
+    def preprocess(self, face_img: np.ndarray) -> "tuple[np.ndarray, int]":
         """Preprocess facial image for ArcFace feature extraction
         using a MTCNN preprocessing model. MTCNN detects facial bounding
         boxes and facial landmarks to get face region-of-interest and perform
@@ -92,9 +97,13 @@ class ArcFace:
 
         Returns
         -------
-        np.ndarray
-            Aligned facial image of shape 3x112x112 with RGB colorspace
+        tuple: (np.ndarray, int)
 
+        np.ndarray
+            Aligned facial image of shape 160x160x3 with RGB colorspace (closest
+            face to the center of the image if multiple faces are detected)
+        int
+            the number of faces detected by the model
         """
         return self.__model.get_input(face_img)
 
@@ -115,7 +124,7 @@ class ArcFace:
 
         """
         if align:
-            face_img = self.preprocess(face_img)
+            face_img, _ = self.preprocess(face_img)
 
         if face_img.shape != (3, 112, 112):
             if len(face_img.shape) == 2:

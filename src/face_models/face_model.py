@@ -126,7 +126,7 @@ class MtcnnModel:
         )
         return model
 
-    def get_input(self, face_img: np.ndarray) -> np.ndarray:
+    def get_input(self, face_img: np.ndarray) -> "tuple[np.ndarray, int]":
         """Preprocess facial image for feature extraction using MTCNN model.
         MTCNN detects facial bounding boxes and facial landmarks to get face
         region-of-interest and perform facial alignment.
@@ -148,9 +148,13 @@ class MtcnnModel:
 
         # If no detections were made, return input image
         if ret is None:
+            #face_img = cv2.resize(face_img, (112, 112))
+            #face_img = cv2.cvtColor(face_img, cv2.COLOR_BGR2RGB)
+            #return face_img
+            
             face_img = cv2.resize(face_img, (112, 112))
             face_img = cv2.cvtColor(face_img, cv2.COLOR_BGR2RGB)
-            return face_img
+            return (face_img, 0)
 
         # Otherwise, the MTCNN model detected facial bounding boxes
         # and landmarks
@@ -158,9 +162,15 @@ class MtcnnModel:
 
         # Make sure detections are not empty lists
         if bbox.shape[0] == 0:
+            #face_img = cv2.resize(face_img, (112, 112))
+            #face_img = cv2.cvtColor(face_img, cv2.COLOR_BGR2RGB)
+            #return face_img
             face_img = cv2.resize(face_img, (112, 112))
             face_img = cv2.cvtColor(face_img, cv2.COLOR_BGR2RGB)
-            return face_img
+            return (face_img, 0)
+
+        # store how many faces were detected
+        num_det = int(bbox.shape[0])
 
         # If multiple faces were detected, we will use the centermost face
         if bbox.shape[0] > 1:
@@ -183,7 +193,7 @@ class MtcnnModel:
         # Convert facial image from BGR to RGB colorspace
         aligned_img = cv2.cvtColor(aligned_img, cv2.COLOR_BGR2RGB)
 
-        return aligned_img
+        return (aligned_img, num_det)
 
 
 class FaceNetModel:
@@ -228,7 +238,7 @@ class FaceNetModel:
             "phase_train:0"
         )
 
-    def get_input(self, face_img: np.ndarray) -> np.ndarray:
+    def get_input(self, face_img: np.ndarray) -> "tuple[np.ndarray, int]":
         """Preprocess facial image for FaceNet feature extraction
         using a MTCNN preprocessing model. MTCNN detects facial bounding
         boxes and facial landmarks to get face region-of-interest and perform
@@ -245,12 +255,12 @@ class FaceNetModel:
             Aligned facial image of shape 160x160x3 with RGB colorspace
 
         """
-        aligned_img = self.__detector.get_input(face_img)
+        aligned_img, num_det = self.__detector.get_input(face_img)
 
         # Resize facial image to 160x160x3
         aligned_img = cv2.resize(aligned_img, (160, 160))
 
-        return aligned_img
+        return (aligned_img, num_det)
 
     def get_feature(self, aligned_img: np.ndarray) -> np.ndarray:
         """Perform FaceNet feature extraction on input preprocessed image.
@@ -339,7 +349,7 @@ class ArcFaceModel:
 
         return model
 
-    def get_input(self, face_img: np.ndarray) -> np.ndarray:
+    def get_input(self, face_img: np.ndarray) -> "tuple[np.ndarray, int]":
         """Preprocess facial image for ArcFace feature extraction
         using a MTCNN preprocessing model. MTCNN detects facial bounding
         boxes and facial landmarks to get face region-of-interest and perform
@@ -356,12 +366,12 @@ class ArcFaceModel:
             Aligned facial image of shape 3x112x112 with RGB colorspace
 
         """
-        aligned_img = self.__detector.get_input(face_img)
+        aligned_img, num_det = self.__detector.get_input(face_img)
 
         # Format image array to have RGB color channels along first dimension
         aligned_img = np.transpose(aligned_img, (2, 0, 1))
 
-        return aligned_img
+        return (aligned_img, num_det)
 
     def get_feature(self, aligned_img: np.ndarray) -> np.ndarray:
         """Perform ArcFace feature extraction on input preprocessed image.
