@@ -25,6 +25,7 @@ import gzip
 import numpy as np
 import cv2
 
+from multiprocessing import Pool
 from threading import Thread
 import time
 
@@ -34,7 +35,7 @@ file_writer_ths:"list[Thread]" = []
 # import module to do img processing
 import face as fr
 
-path_to_mobio = "../../MOBIO/"
+path_to_mobio = "../MOBIO/"
 
 # list of presets to run through. set them to extract from different folders in MOBIO.
 presets_list = [
@@ -228,8 +229,8 @@ def extract_video(output_dir:str, file_path:str, model):
 
 
 # tests data from a video to make sure its use-able
-def test_data_json(file_path:str):
-    data = load_json_file(file_path=file_path)
+def test_data_json_gz(file_path:str):
+    data = load_json_gz_file(file_path=file_path)
     feat_vect = data["feature_vectors"][0]["feature_vector"]
     feat_vect_np = np.array(feat_vect)
     print(feat_vect)
@@ -248,6 +249,27 @@ def write_to_json_gz(file_path:str, data:dict, comp_lvl:int=6)-> None:
     print("Finished writing file!")
 
 
+# wrapper for write_to_json_gz
+def compress_wrapper(file_path:str)-> None:
+    data = load_json_file(file_path=file_path)
+    new_name = f"{file_path}.gz"
+    write_to_json_gz(file_path=new_name, data=data)
+
+
+# creates a bunch of processes to zip up the files
+def compress_json_files():
+    # get files to compress
+    base_path = "./MOBIO_extracted/but/"
+    files_to_compress = os.listdir(base_path)
+    file_paths = []
+    for file_name in files_to_compress:
+        file_paths.append(os.path.join(base_path, file_name))
+
+    # generate processes to handle compression
+    with Pool() as p:
+        p.map(compress_wrapper, file_paths)
+
+
 # writes a dictionary to a json file
 def write_to_json(file_path:str, data:dict)-> None:
     with open(file_path, "w") as file:
@@ -257,6 +279,12 @@ def write_to_json(file_path:str, data:dict)-> None:
 # loads a json file into a python dictionary
 def load_json_file(file_path:str)-> dict:
     with open(file_path, "r") as file:
+        return json.load(file)
+    
+
+# loads a json file into a python dictionary
+def load_json_gz_file(file_path:str)-> dict:
+    with gzip.open(file_path, "rb") as file:
         return json.load(file)
     
 
