@@ -43,19 +43,19 @@ presets_list = [
     # three per location, for 'phase 1 laptop', 'phase 1 mobile', and 'phase 2 mobile' folders
 
     # but location
-    [ 0, "but", 1, "laptop", True, f"{path_to_mobio}but_laptop/", "./MOBIO_extracted/but/"],
+    #[ 0, "but", 1, "laptop", True, f"{path_to_mobio}but_laptop/", "./MOBIO_extracted/but/"],
     [ 0, "but", 1, "mobile/phone", True, f"{path_to_mobio}but_phase1/", "./MOBIO_extracted/but/"],
     [ 0, "but", 2, "mobile/phone", True, f"{path_to_mobio}but_phase2/", "./MOBIO_extracted/but/"],
 
     # idiap location
-    [ 0, "idiap", 1, "laptop", True, f"{path_to_mobio}idiap_laptop/", "./MOBIO_extracted/idiap/"],
-    [ 0, "idiap", 1, "mobile/phone", True, f"{path_to_mobio}idiap_phase1/", "./MOBIO_extracted/idiap/"],
-    [ 0, "idiap", 2, "mobile/phone", True, f"{path_to_mobio}idiap_phase2/", "./MOBIO_extracted/idiap/"],
+    #[ 0, "idiap", 1, "laptop", True, f"{path_to_mobio}idiap_laptop/", "./MOBIO_extracted/idiap/"],
+    #[ 0, "idiap", 1, "mobile/phone", True, f"{path_to_mobio}idiap_phase1/", "./MOBIO_extracted/idiap/"],
+    #[ 0, "idiap", 2, "mobile/phone", True, f"{path_to_mobio}idiap_phase2/", "./MOBIO_extracted/idiap/"],
 
     # lia location
-    [ 0, "lia", 1, "laptop", True, f"{path_to_mobio}lia_laptop/", "./MOBIO_extracted/lia/"],
-    [ 0, "lia", 1, "mobile/phone", True, f"{path_to_mobio}lia_phase1/", "./MOBIO_extracted/lia/"],
-    [ 0, "lia", 2, "mobile/phone", True, f"{path_to_mobio}lia_phase2/", "./MOBIO_extracted/lia/"]
+    #[ 0, "lia", 1, "laptop", True, f"{path_to_mobio}lia_laptop/", "./MOBIO_extracted/lia/"],
+    #[ 0, "lia", 1, "mobile/phone", True, f"{path_to_mobio}lia_phase1/", "./MOBIO_extracted/lia/"],
+    #[ 0, "lia", 2, "mobile/phone", True, f"{path_to_mobio}lia_phase2/", "./MOBIO_extracted/lia/"]
 ] # end presets list
 
 
@@ -130,6 +130,7 @@ def main():
                     if file_name[:2] != "._":
                         # perform extraction
                         tic = time.perf_counter()
+                        print(f"Extracting {file_name} from {PRESETS.input_dir} ({PRESETS.LOCATION})")
                         extract_video(
                             output_dir=PRESETS.output_dir,
                             file_path=os.path.join(dir_path, file_name),
@@ -237,6 +238,9 @@ def test_data_json_gz(file_path:str):
     print("")
     print(feat_vect_np.shape)
     print(len(feat_vect_np))
+    print("")
+    for features in data["feature_vectors"]:
+        print(features["frame_num"])
 
 
 # jsonify data dictionary, then gzip to make it more compressed
