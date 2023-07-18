@@ -20,12 +20,43 @@
 import os
 import json
 import copy
+import gzip
 
 import numpy as np
 import cv2
 
+from threading import Thread
+import time
+
+# create a list to contain threads spawned from file writing
+file_writer_ths:"list[Thread]" = []
+
 # import module to do img processing
 import face as fr
+
+path_to_mobio = "../../MOBIO/"
+
+# list of presets to run through. set them to extract from different folders in MOBIO.
+presets_list = [
+    # [ GPU, LOCATION, PHASE, DEVICE, USE_ARCFACE, input_dir, output_dir]
+    # three per location, for 'phase 1 laptop', 'phase 1 mobile', and 'phase 2 mobile' folders
+
+    # but location
+    [ 0, "but", 1, "laptop", True, f"{path_to_mobio}but_laptop/", "./MOBIO_extracted/but/"],
+    [ 0, "but", 1, "mobile/phone", True, f"{path_to_mobio}but_phase1/", "./MOBIO_extracted/but/"],
+    [ 0, "but", 2, "mobile/phone", True, f"{path_to_mobio}but_phase2/", "./MOBIO_extracted/but/"],
+
+    # idiap location
+    [ 0, "idiap", 1, "laptop", True, f"{path_to_mobio}idiap_laptop/", "./MOBIO_extracted/idiap/"],
+    [ 0, "idiap", 1, "mobile/phone", True, f"{path_to_mobio}idiap_phase1/", "./MOBIO_extracted/idiap/"],
+    [ 0, "idiap", 2, "mobile/phone", True, f"{path_to_mobio}idiap_phase2/", "./MOBIO_extracted/idiap/"],
+
+    # lia location
+    [ 0, "lia", 1, "laptop", True, f"{path_to_mobio}lia_laptop/", "./MOBIO_extracted/lia/"],
+    [ 0, "lia", 1, "mobile/phone", True, f"{path_to_mobio}lia_phase1/", "./MOBIO_extracted/lia/"],
+    [ 0, "lia", 2, "mobile/phone", True, f"{path_to_mobio}lia_phase2/", "./MOBIO_extracted/lia/"]
+] # end presets list
+
 
 # set these to match the folder we're currently extracting from
 class PRESETS:
@@ -53,36 +84,62 @@ class MOBIO:
         "uoulu"
     ] # end locations
 
+    # types of videos to extract from. MOBIO only has .mov and .mp4 files.
     VIDEO_TYPES = [
         ".mp4",
         ".mov"
-    ]
+    ] # end allowed video types
 
 
 def main():
-    # load face model w/ preprocessing model
-    model = None
-    if PRESETS.USE_ARCFACE == True:
-        model = fr.ArcFace(PRESETS.GPU) # hardcoded to ArcFace w/MTCNN!
-    else:
-        model = fr.FaceNet(PRESETS.GPU) # hardcoded to FaceNet w/MTCNN!
+    # loop over the presets list
+    for preset in presets_list:
+        # set PRESETS to match the given preset
+        PRESETS.GPU = preset[0]
+        PRESETS.LOCATION = preset[1]
+        PRESETS.PHASE = preset[2]
+        PRESETS.DEVICE = preset[3]
+        PRESETS.USE_ARCFACE = preset[4]
+        PRESETS.input_dir = preset[5]
+        PRESETS.output_dir = preset[6]
 
-    # make sure output dir exists
-    if os.path.exists(PRESETS.output_dir) == False:
-        os.makedirs(PRESETS.output_dir)
+        print("Current Preset Settings:")
+        print(f"GPU:{PRESETS.GPU} LOCATION:{PRESETS.LOCATION} PHASE:{PRESETS.PHASE} DEVICE:{PRESETS.DEVICE}")
+        print(f"USE_ARCFACE:{PRESETS.USE_ARCFACE} input_dir:{PRESETS.input_dir} output_dir:{PRESETS.output_dir}")
 
-    # walk through a directory containing info
-    for (dir_path, dir_names, file_names) in os.walk(PRESETS.input_dir, topdown=True):
-        # loop over files found in dir
-        for file_name in file_names:
-            # check if file is a video file
-            if is_in_list(os.path.splitext(os.path.basename(file_name))[1], MOBIO.VIDEO_TYPES):
-                # perform extraction
-                extract_video(
-                    output_dir=PRESETS.output_dir,
-                    file_path=os.path.join(dir_path, file_name),
-                    model=model
-                ) # extract video function
+        # load face model w/ preprocessing model
+        model = None
+        if PRESETS.USE_ARCFACE == True:
+            model = fr.ArcFace(PRESETS.GPU) # hardcoded to ArcFace w/MTCNN!
+        else:
+            model = fr.FaceNet(PRESETS.GPU) # hardcoded to FaceNet w/MTCNN!
+
+        # make sure output dir exists
+        if os.path.exists(PRESETS.output_dir) == False:
+            os.makedirs(PRESETS.output_dir)
+
+
+        # walk through a directory containing info
+        for (dir_path, dir_names, file_names) in os.walk(PRESETS.input_dir, topdown=True):
+            # loop over files found in dir
+            for file_name in file_names:
+                # check if file is a video file
+                if is_in_list(os.path.splitext(os.path.basename(file_name))[1], MOBIO.VIDEO_TYPES):
+                    # avoid bad files
+                    if file_name[:2] != "._":
+                        # perform extraction
+                        tic = time.perf_counter()
+                        extract_video(
+                            output_dir=PRESETS.output_dir,
+                            file_path=os.path.join(dir_path, file_name),
+                            model=model
+                        ) # end extract video function
+                        toc = time.perf_counter()
+                        print(f"Time to extract the video: {toc - tic:0.4f} seconds")
+
+        # wait for remaining threads to finish (if applicable)
+        for thread in file_writer_ths:
+            thread.join()
 
 
 # extract important details from the video & save to dict
@@ -158,10 +215,16 @@ def extract_video(output_dir:str, file_path:str, model):
         "feature_vectors": feature_vectors # the feature vectors and other data pulled from each frame of the video
     } # end data dict
 
-    # write data dict to file
-    name = f"{os.path.splitext(base_name)[0]}.json"
+    # create name of new file
+    name = f"{os.path.splitext(base_name)[0]}.json.gz"
     output_path = os.path.join(output_dir, name)
-    write_to_json(file_path=output_path, data=data)
+
+    # create a thread to compresss & write data to a file
+    tic = time.perf_counter()
+    file_writer_ths.append(Thread(target=write_to_json_gz, args=(output_path, data)))
+    file_writer_ths[-1].start()
+    toc = time.perf_counter()
+    print(f"Time to create thread: {toc - tic:0.4f} seconds")
 
 
 # tests data from a video to make sure its use-able
@@ -173,6 +236,16 @@ def test_data_json(file_path:str):
     print("")
     print(feat_vect_np.shape)
     print(len(feat_vect_np))
+
+
+# jsonify data dictionary, then gzip to make it more compressed
+# after compression, write to the file
+def write_to_json_gz(file_path:str, data:dict, comp_lvl:int=6)-> None:
+    json_data = json.dumps(data)
+    encoded_data = json_data.encode('utf-8')
+    with open(file_path, "wb") as file:
+        file.write(gzip.compress(data=encoded_data, compresslevel=comp_lvl))
+    print("Finished writing file!")
 
 
 # writes a dictionary to a json file
