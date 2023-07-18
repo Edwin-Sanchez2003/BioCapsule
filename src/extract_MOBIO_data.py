@@ -40,23 +40,24 @@ presets_list = [
 
     # but location
     [ 0, "but", 1, "laptop", True, f"{path_to_mobio}but_laptop/", "./MOBIO_extracted/but/"],
-    #[ 0, "but", 1, "mobile/phone", True, f"{path_to_mobio}but_phase1/", "./MOBIO_extracted/but/"],
-    #[ 0, "but", 2, "mobile/phone", True, f"{path_to_mobio}but_phase2/", "./MOBIO_extracted/but/"],
+    [ 0, "but", 1, "mobile", True, f"{path_to_mobio}but_phase1/", "./MOBIO_extracted/but/"],
+    [ 0, "but", 2, "mobile", True, f"{path_to_mobio}but_phase2/", "./MOBIO_extracted/but/"],
 
     # idiap location
-    #[ 0, "idiap", 1, "laptop", True, f"{path_to_mobio}idiap_laptop/", "./MOBIO_extracted/idiap/"],
-    #[ 0, "idiap", 1, "mobile/phone", True, f"{path_to_mobio}idiap_phase1/", "./MOBIO_extracted/idiap/"],
-    #[ 0, "idiap", 2, "mobile/phone", True, f"{path_to_mobio}idiap_phase2/", "./MOBIO_extracted/idiap/"],
+    [ 0, "idiap", 1, "laptop", True, f"{path_to_mobio}idiap_laptop/", "./MOBIO_extracted/idiap/"],
+    [ 0, "idiap", 1, "mobile", True, f"{path_to_mobio}idiap_phase1/", "./MOBIO_extracted/idiap/"],
+    [ 0, "idiap", 2, "mobile", True, f"{path_to_mobio}idiap_phase2/", "./MOBIO_extracted/idiap/"],
 
     # lia location
-    #[ 0, "lia", 1, "laptop", True, f"{path_to_mobio}lia_laptop/", "./MOBIO_extracted/lia/"],
-    #[ 0, "lia", 1, "mobile/phone", True, f"{path_to_mobio}lia_phase1/", "./MOBIO_extracted/lia/"],
-    #[ 0, "lia", 2, "mobile/phone", True, f"{path_to_mobio}lia_phase2/", "./MOBIO_extracted/lia/"]
+    [ 0, "lia", 1, "laptop", True, f"{path_to_mobio}lia_laptop/", "./MOBIO_extracted/lia/"],
+    [ 0, "lia", 1, "mobile", True, f"{path_to_mobio}lia_phase1/", "./MOBIO_extracted/lia/"],
+    [ 0, "lia", 2, "mobile", True, f"{path_to_mobio}lia_phase2/", "./MOBIO_extracted/lia/"]
 ] # end presets list
 
 
 # set these to match the folder we're currently extracting from
 class PRESETS:
+    WAIT_SEC_FOR_EXT = 10.00
     GPU = 0 # -1 for CPU, [0,n] for GPU(s)
     LOCATION = "but" # location where video was taken (MOBIO)
     PHASE = 1 # the phase: 1 or 2
@@ -131,9 +132,7 @@ def main():
             # check if there are any videos to extract from
             if len(session_file_names) > 0:
                 # sort the files to be in the right order
-                print("Started Sorting")
                 session_file_names = put_files_in_order(session_file_names)
-                print("Finished Sorting")
                 # pass the videos found in the session folder
                 # to the extraction function
                 print(f"Extracting {file_name} from {PRESETS.input_dir} ({PRESETS.LOCATION})")
@@ -151,7 +150,6 @@ def put_files_in_order(old_list:"list[str]")-> "list[str]":
     for file_name in old_list:
         base_name = os.path.basename(file_name)
         recording_num = int(base_name[9:11])
-        print(recording_num)
         tmp_list.append((file_name, recording_num))
 
     # sort 
@@ -195,7 +193,7 @@ def extract_video(output_dir:str, file_paths:"list[str]", model):
             
             # increment time
             current_time += float(1/fps)
-            if current_time >= 10.00: #check if we hit the 10 second mark, then process the frame
+            if current_time >= PRESETS.WAIT_SEC_FOR_EXT: #check if we hit the 10 second mark, then process the frame
                 current_time = 0.0
 
                 # pass img through preprocessing
@@ -258,7 +256,7 @@ def extract_video(output_dir:str, file_paths:"list[str]", model):
     } # end data dict
 
     # create name of new file
-    name = f"{PRESETS.LOCATION}_{PRESETS.DEVICE}_{subject_ID}_{session_ID}.json.gz"
+    name = f"{PRESETS.LOCATION}_{PRESETS.DEVICE}_{PRESETS.PHASE}_{subject_ID}_{session_ID}.json.gz"
     output_path = os.path.join(output_dir, name)
 
     # compresss & write data to a file
