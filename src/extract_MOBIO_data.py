@@ -6,10 +6,7 @@
     Generates feature vectors from a set of images or videos.
     Stores the feature vectors in a JSON file with other metadata.
 
-    Bottleneck: The bottle neck will be how many videos &
-                models we can load into memory w/out crashing.
-                Bottleneck also in the amount of available GPU 
-                space to load models.
+    Bottleneck: GPU Size/Memory Constraints
 
     PLEASE READ:
     - To run, make sure to set the PRESETS!!!!
@@ -39,19 +36,34 @@ presets_list = [
     # three per location, for 'phase 1 laptop', 'phase 1 mobile', and 'phase 2 mobile' folders
 
     # but location
-    [ 0, "but", 1, "laptop", True, f"{path_to_mobio}but_laptop/", "./MOBIO_extracted/but/"],
-    [ 0, "but", 1, "mobile", True, f"{path_to_mobio}but_phase1/", "./MOBIO_extracted/but/"],
-    [ 0, "but", 2, "mobile", True, f"{path_to_mobio}but_phase2/", "./MOBIO_extracted/but/"],
+    #[ 0, "but", 1, "laptop", True, f"{path_to_mobio}but_laptop/", "./MOBIO_extracted/but/"],
+    #[ 0, "but", 1, "mobile", True, f"{path_to_mobio}but_phase1/", "./MOBIO_extracted/but/"],
+    #[ 0, "but", 2, "mobile", True, f"{path_to_mobio}but_phase2/", "./MOBIO_extracted/but/"],
 
     # idiap location
-    [ 0, "idiap", 1, "laptop", True, f"{path_to_mobio}idiap_laptop/", "./MOBIO_extracted/idiap/"],
-    [ 0, "idiap", 1, "mobile", True, f"{path_to_mobio}idiap_phase1/", "./MOBIO_extracted/idiap/"],
-    [ 0, "idiap", 2, "mobile", True, f"{path_to_mobio}idiap_phase2/", "./MOBIO_extracted/idiap/"],
+    #[ 0, "idiap", 1, "laptop", True, f"{path_to_mobio}idiap_laptop/", "./MOBIO_extracted/idiap/"],
+    #[ 0, "idiap", 1, "mobile", True, f"{path_to_mobio}idiap_phase1/", "./MOBIO_extracted/idiap/"],
+    #[ 0, "idiap", 2, "mobile", True, f"{path_to_mobio}idiap_phase2/", "./MOBIO_extracted/idiap/"],
 
     # lia location
-    [ 0, "lia", 1, "laptop", True, f"{path_to_mobio}lia_laptop/", "./MOBIO_extracted/lia/"],
-    [ 0, "lia", 1, "mobile", True, f"{path_to_mobio}lia_phase1/", "./MOBIO_extracted/lia/"],
-    [ 0, "lia", 2, "mobile", True, f"{path_to_mobio}lia_phase2/", "./MOBIO_extracted/lia/"]
+    #[ 0, "lia", 1, "laptop", True, f"{path_to_mobio}lia_laptop/", "./MOBIO_extracted/lia/"],
+    #[ 0, "lia", 1, "mobile", True, f"{path_to_mobio}lia_phase1/", "./MOBIO_extracted/lia/"],
+    #[ 0, "lia", 2, "mobile", True, f"{path_to_mobio}lia_phase2/", "./MOBIO_extracted/lia/"],
+
+    # uman location
+    [ 0, "uman", 1, "laptop", True, f"{path_to_mobio}uman_laptop/", "./MOBIO_extracted/uman/"],
+    [ 0, "uman", 1, "mobile", True, f"{path_to_mobio}uman_phase1/", "./MOBIO_extracted/uman/"],
+    [ 0, "uman", 2, "mobile", True, f"{path_to_mobio}uman_phase2/", "./MOBIO_extracted/uman/"],
+
+    # unis location
+    [ 0, "unis", 1, "laptop", True, f"{path_to_mobio}unis_laptop/", "./MOBIO_extracted/unis/"],
+    [ 0, "unis", 1, "mobile", True, f"{path_to_mobio}unis_phase1/", "./MOBIO_extracted/unis/"],
+    [ 0, "unis", 2, "mobile", True, f"{path_to_mobio}unis_phase2/", "./MOBIO_extracted/unis/"],
+
+    # uoulu location
+    [ 0, "uoulu", 1, "laptop", True, f"{path_to_mobio}uoulu_laptop/", "./MOBIO_extracted/uoulu/"],
+    [ 0, "uoulu", 1, "mobile", True, f"{path_to_mobio}uoulu_phase1/", "./MOBIO_extracted/uoulu/"],
+    [ 0, "uoulu", 2, "mobile", True, f"{path_to_mobio}uoulu_phase2/", "./MOBIO_extracted/uoulu/"]
 ] # end presets list
 
 
