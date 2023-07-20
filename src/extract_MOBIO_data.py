@@ -29,6 +29,7 @@ import time
 import face as fr
 
 path_to_mobio = "../MOBIO/"
+extraction_dest_dir = "./MOBIO_extracted/one_sec_intervals/"
 
 # list of presets to run through. set them to extract from different folders in MOBIO.
 presets_list = [
@@ -36,40 +37,40 @@ presets_list = [
     # three per location, for 'phase 1 laptop', 'phase 1 mobile', and 'phase 2 mobile' folders
 
     # but location
-    #[ 0, "but", 1, "laptop", True, f"{path_to_mobio}but_laptop/", "./MOBIO_extracted/but/"],
-    #[ 0, "but", 1, "mobile", True, f"{path_to_mobio}but_phase1/", "./MOBIO_extracted/but/"],
-    #[ 0, "but", 2, "mobile", True, f"{path_to_mobio}but_phase2/", "./MOBIO_extracted/but/"],
+    [ 0, "but", 1, "laptop", True, f"{path_to_mobio}but_laptop/", f"{extraction_dest_dir}but/"],
+    [ 0, "but", 1, "mobile", True, f"{path_to_mobio}but_phase1/", f"{extraction_dest_dir}but/"],
+    [ 0, "but", 2, "mobile", True, f"{path_to_mobio}but_phase2/", f"{extraction_dest_dir}but/"],
 
     # idiap location
-    #[ 0, "idiap", 1, "laptop", True, f"{path_to_mobio}idiap_laptop/", "./MOBIO_extracted/idiap/"],
-    #[ 0, "idiap", 1, "mobile", True, f"{path_to_mobio}idiap_phase1/", "./MOBIO_extracted/idiap/"],
-    #[ 0, "idiap", 2, "mobile", True, f"{path_to_mobio}idiap_phase2/", "./MOBIO_extracted/idiap/"],
+    [ 0, "idiap", 1, "laptop", True, f"{path_to_mobio}idiap_laptop/", f"{extraction_dest_dir}idiap/"],
+    [ 0, "idiap", 1, "mobile", True, f"{path_to_mobio}idiap_phase1/", f"{extraction_dest_dir}idiap/"],
+    [ 0, "idiap", 2, "mobile", True, f"{path_to_mobio}idiap_phase2/", f"{extraction_dest_dir}idiap/"],
 
     # lia location
-    #[ 0, "lia", 1, "laptop", True, f"{path_to_mobio}lia_laptop/", "./MOBIO_extracted/lia/"],
-    #[ 0, "lia", 1, "mobile", True, f"{path_to_mobio}lia_phase1/", "./MOBIO_extracted/lia/"],
-    #[ 0, "lia", 2, "mobile", True, f"{path_to_mobio}lia_phase2/", "./MOBIO_extracted/lia/"],
+    [ 0, "lia", 1, "laptop", True, f"{path_to_mobio}lia_laptop/", f"{extraction_dest_dir}lia/"],
+    [ 0, "lia", 1, "mobile", True, f"{path_to_mobio}lia_phase1/", f"{extraction_dest_dir}lia/"],
+    [ 0, "lia", 2, "mobile", True, f"{path_to_mobio}lia_phase2/", f"{extraction_dest_dir}lia/"],
 
     # uman location
-    [ 0, "uman", 1, "laptop", True, f"{path_to_mobio}uman_laptop/", "./MOBIO_extracted/uman/"],
-    [ 0, "uman", 1, "mobile", True, f"{path_to_mobio}uman_phase1/", "./MOBIO_extracted/uman/"],
-    [ 0, "uman", 2, "mobile", True, f"{path_to_mobio}uman_phase2/", "./MOBIO_extracted/uman/"],
+    [ 0, "uman", 1, "laptop", True, f"{path_to_mobio}uman_laptop/", f"{extraction_dest_dir}uman/"],
+    [ 0, "uman", 1, "mobile", True, f"{path_to_mobio}uman_phase1/", f"{extraction_dest_dir}uman/"],
+    [ 0, "uman", 2, "mobile", True, f"{path_to_mobio}uman_phase2/", f"{extraction_dest_dir}uman/"],
 
     # unis location
-    [ 0, "unis", 1, "laptop", True, f"{path_to_mobio}unis_laptop/", "./MOBIO_extracted/unis/"],
-    [ 0, "unis", 1, "mobile", True, f"{path_to_mobio}unis_phase1/", "./MOBIO_extracted/unis/"],
-    [ 0, "unis", 2, "mobile", True, f"{path_to_mobio}unis_phase2/", "./MOBIO_extracted/unis/"],
+    [ 0, "unis", 1, "laptop", True, f"{path_to_mobio}unis_laptop/", f"{extraction_dest_dir}unis/"],
+    [ 0, "unis", 1, "mobile", True, f"{path_to_mobio}unis_phase1/", f"{extraction_dest_dir}unis/"],
+    [ 0, "unis", 2, "mobile", True, f"{path_to_mobio}unis_phase2/", f"{extraction_dest_dir}unis/"],
 
     # uoulu location
-    [ 0, "uoulu", 1, "laptop", True, f"{path_to_mobio}uoulu_laptop/", "./MOBIO_extracted/uoulu/"],
-    [ 0, "uoulu", 1, "mobile", True, f"{path_to_mobio}uoulu_phase1/", "./MOBIO_extracted/uoulu/"],
-    [ 0, "uoulu", 2, "mobile", True, f"{path_to_mobio}uoulu_phase2/", "./MOBIO_extracted/uoulu/"]
+    [ 0, "uoulu", 1, "laptop", True, f"{path_to_mobio}uoulu_laptop/", f"{extraction_dest_dir}uoulu/"],
+    [ 0, "uoulu", 1, "mobile", True, f"{path_to_mobio}uoulu_phase1/", f"{extraction_dest_dir}uoulu/"],
+    [ 0, "uoulu", 2, "mobile", True, f"{path_to_mobio}uoulu_phase2/", f"{extraction_dest_dir}uoulu/"]
 ] # end presets list
 
 
 # set these to match the folder we're currently extracting from
 class PRESETS:
-    WAIT_SEC_FOR_EXT = 10.00
+    WAIT_SEC_FOR_EXT = 1.00 # wait every 1 second to perform extraction
     GPU = 0 # -1 for CPU, [0,n] for GPU(s)
     LOCATION = "but" # location where video was taken (MOBIO)
     PHASE = 1 # the phase: 1 or 2
@@ -264,7 +265,8 @@ def extract_video(output_dir:str, file_paths:"list[str]", model):
         }, # end MOBIO specific data for video
         "file_names": file_paths, # original video file names (in order)
         "feat_vect_length": 512, # length of the feature vectors - default 512
-        "frame_data": frame_data # the feature vectors and other data pulled from each frame of the video
+        "frame_data": frame_data, # the feature vectors and other data pulled from each frame of the video
+        "extraction_rate_sec": PRESETS.WAIT_SEC_FOR_EXT # how many seconds to wait in each video before extracting
     } # end data dict
 
     # create name of new file
