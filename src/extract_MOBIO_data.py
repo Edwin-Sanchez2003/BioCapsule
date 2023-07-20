@@ -103,6 +103,8 @@ class MOBIO:
 
 
 def main():
+    #test_data_json_gz("./MOBIO_extracted/ten_sec_intervals/but/but_laptop_1_f401_01.json.gz")
+    #return
     # loop over the presets list
     for preset in presets_list:
         # set PRESETS to match the given preset
@@ -288,16 +290,15 @@ def extract_video(output_dir:str, file_paths:"list[str]", model):
 def test_data_json_gz(file_path:str):
     data = load_json_gz_file(file_path=file_path)
     print(data["MOBIO"])
-    print(data["frame_data"][0])
-    feat_vect = data["frame_data"][0]["feature_vectors"]["arcface"]
-    feat_vect_np = np.array(feat_vect)
-    print(feat_vect)
+    #print(data["frame_data"][0])
+    #feat_vect = data["frame_data"][0]["feature_vectors"]["facenet"]
+    #feat_vect_np = np.array(feat_vect)
+    #print(feat_vect)
     print("")
-    print(feat_vect_np.shape)
-    print(len(feat_vect_np))
-    print("")
-    for features in data["feature_vectors"]:
-        print(features["frame_num"])
+    #print(feat_vect_np.shape)
+    #print(len(feat_vect_np))
+    print(data["frame_data"][0]["num_faces_detected"])
+    print(data["frame_data"][0]["feature_vectors"])
 
 
 # jsonify data dictionary, then gzip to make it more compressed
