@@ -44,12 +44,12 @@ def main():
     # the directories to search through for compressed files
     base_path = "./MOBIO_extracted/one_sec_intervals/"
     dirs_to_search = [
-        "but/",
-        "idiap/",
-        "lia/",
-        "uman/",
-        "unis/",
-        "uoulu"
+        #"but/",
+        #"idiap/",
+        #"lia/",
+        #"uman/",
+        #"unis/",
+        #"uoulu"
     ] # end dirs_to_search
 
     # get the file paths of all of the files
@@ -101,7 +101,7 @@ def main():
         # feature vectors, write back to compressed json file
         write_to_json_gz(file_path=file_path, data=data)
         toc = time.perf_counter()
-        print(f"Finished {i} of {num_files}: Took {toc - tic:0.4f} seconds")
+        print(f"Finished {i+1} of {num_files}: Took {toc - tic:0.4f} seconds")
 
 
 if __name__ == "__main__":
