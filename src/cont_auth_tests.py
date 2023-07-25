@@ -59,6 +59,7 @@
     - std. dev? (always have error bars)
     - how about after applying bc scheme? will give great insights to 
       how bc changes the representation of the feature embeddings
+    - confusion matrix between the 150 people!!!! (That would be so cool)
 
     MOBIO Notes:
     - OMIT f210 from unis!!! Only 1 session exists for this individual
@@ -74,10 +75,21 @@ import random
 
 import biocapsule as bc
 
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import confusion_matrix
+
 from test_enums import *
 from data_tools import *
 
+# Params #
+model_type = Model_Type.ARCFACE
 
+# load rs features for later bc use
+rs_data = load_json_gz_file(
+    file_path="./MOBIO_extracted/one_sec_intervals/XX_removed_from_exp_XX/f210/unis_laptop_1_f210_01.json.gz")
+ref_subj_feat_vect = rs_data["frame_data"][0][model_type]
+
+# locations in MOBIO dataset
 MOBIO_LOCATIONS = [
     "but/",
     "idiap/",
@@ -140,7 +152,7 @@ def main():
                 location=os.path.basename(input_dir),
                 use_bc=False,
                 platform=Platform.MULTI,
-                model_type=Model_Type.ARCFACE,
+                model_type=model_type,
                 use_quantization=False,
                 dataset_name=Dataset.MOBIO,
                 classifier_type=Classifier.LOGISTIC_REGRESSION,
@@ -258,17 +270,62 @@ def run_test(participant_dir:str,
 
         # combine train pos & train neg samples
         # create labels for binary classification
+        train_samples, train_labels = combine_samples(train_neg_samples, train_pos_samples)
+        
         # combine test pos & test neg samples
         # create labels for binary classification
+        test_samples, test_labels = combine_samples(test_neg_samples, test_pos_samples) 
 
         # apply biocapsule, if applicable
+        if use_bc == True:
+            bc_gen = bc.BioCapsuleGenerator()
+            train_samples = apply_bc_scheme(
+                bc_gen=bc_gen,
+                samples=train_samples,
+                reference_subject=ref_subj_feat_vect
+            ) # end apply_bc_scheme to train_samples
+            test_samples = apply_bc_scheme(
+                bc_gen=bc_gen,
+                samples=test_samples,
+                reference_subject=ref_subj_feat_vect
+            ) # end apply_bc_scheme to train_samples
 
         # train classifier for this subject
+        classifier = LogisticRegression(
+            class_weight="balanced", random_state=42
+        ).fit(train_samples, train_labels)
+        # store classifier???
 
         # run classifier on test data
+        mean_acc = classifier.score(test_samples, test_labels)
+        # get confusion matrix to extract data
+        pred_test_labels = classifier.predict(test_samples)
+        conf_matrix = confusion_matrix(test_labels, pred_test_labels)
+        tn, fp, fn, tp = conf_matrix.ravel()
+        #far
+        #frr
+        #eer
         # generate performance metrics
         # store data into file
 
+# applies the bc scheme, if applicable
+def apply_bc_scheme(bc_gen:bc.BioCapsuleGenerator,
+                    samples:"list[list[float]]",
+                    reference_subject:"list[float]"
+                    )-> "list[list[float]]":
+    pass
+
+# creates a list containing all of one type of sample
+def combine_samples(group_A:list, # negative samples list
+                    group_B:list, # positive samples list
+                    )-> "tuple[list[list[float]], list[int]]":
+    len_A = len(group_A)
+    len_B = len(group_B)
+    labels_A = [0]*len_A
+    labels_B = [1]*len_B
+    labels = labels_A.extend(labels_B)
+    samples = group_A.extend(group_B)
+    return (samples, labels)
 
 # get pos samples, in train/test split
 def get_pos_samples(training_path:str, 
@@ -417,7 +474,7 @@ def remove_training_subj(subj_id:str, subj_dirs:"list[str]")-> "list[str]":
 
 # returns the feature vectors selected for training/testing
 # at a given interval and for a specific model
-def get_feature_data(data:dict, t_interval:int, model_type:str)-> "list[list[int]]":
+def get_feature_data(data:dict, t_interval:int, model_type:str)-> "list[list[float]]":
     # assemble all of the feature vectors from a given model
     # into an array, using the integer for seconds time intervals
     feature_vectors = []
