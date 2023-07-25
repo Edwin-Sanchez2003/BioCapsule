@@ -303,10 +303,14 @@ def run_test(participant_dir:str,
         conf_matrix = confusion_matrix(test_labels, pred_test_labels)
         tn, fp, fn, tp = conf_matrix.ravel()
         #far
+        far = fp / (fp + fn)
         #frr
+        frr = fn / (tp + tn)
         #eer
+        eer = (far + frr) / 2
         # generate performance metrics
         # store data into file
+
 
 # applies the bc scheme, if applicable
 def apply_bc_scheme(bc_gen:bc.BioCapsuleGenerator,
