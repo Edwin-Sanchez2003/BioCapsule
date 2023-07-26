@@ -142,98 +142,173 @@ def main():
         input_dirs.append(os.path.join(BASE_DIR, loc_path))
 
     # loop over input dirs
+    subjects_data = []
     for input_dir in input_dirs:
         # loop over participants
         for part_id in os.listdir(input_dir):
-            # run a test generate a file containing
-            # data on the test. include test params
-            out_data = run_test(
-                participant_dir=os.path.join(input_dir, part_id),
-                location=os.path.basename(input_dir),
-                dataset_name=Dataset.MOBIO,
-                use_bc=False,
+            # get out the subject data for every subject
+            # and load the data into memory.
+            # only the data we need to run the tests
+            subject_data = get_subj_data(
+                subj_dir=os.path.join(input_dir, part_id),
                 platform=Platform.MULTI,
-                model_type=Model_Type.ARCFACE,
                 t_interval=10,
-                window_size=1,
-                classifier_type=Classifier.LOGISTIC_REGRESSION,
-                use_k_fold=False
-            ) # end run_test function
-
-            ## aggregate results here from out_data
+                model_type=Model_Type.ARCFACE
+            ) # end get_subj_data call
+            subjects_data.append(subjects_data)
+        # end loop over participants in a location
+    # end loop over all directories to search through for data
+    
+    # run a test generate a file containing
+    # data on the test. include test params
+    out_data = run_test(
+        subjects_data=subjects_data,
+        use_bc=False,
+        window_size=1,
+        classifier_type=Classifier.LOGISTIC_REGRESSION,
+        use_k_fold=False
+    ) # end run_test
+# end main
 
 
 # run a test for a single participant,
 # given the input params
 # store the data generated for each invididual test for later
-def run_test(participant_dir:str,
-             location:str,
-             dataset_name:Dataset,
+def run_test(subjects_data:"list[dict]",
              use_bc:bool,
-             platform:Platform,
-             model_type:Model_Type,
-             t_interval:int,
              window_size:int,
              classifier_type:Classifier,
              use_k_fold:bool)-> Union[dict, None]:
-    
-    # the id of the subject (participant id)
-    subj_id = os.path.basename(participant_dir)
+    # loop over every element in the subjects_data list
+    # the whole subjects_data array will be used in every iteration,
+    # but the classifier & test will be done with respect to the current
+    # subject data dict being iterated over by the for loop
+    for subj_index, subject_data in enumerate(subjects_data):
+        # the id of the current subject (participant id)
+        subj_id = subjects_data["subject_ID"]
 
-    # the data to be saved as a json file
-    out_subj_data = {
-        "dataset": dataset_name,
-        "origin_subj_dir": participant_dir,
-        "subject_id": subj_id,
-        "use_bc": use_bc,
-        "platform": platform,
-        "pre_proc_model": "mtcnn",
-        "feat_ext_model": model_type,
-        "classifier": classifier_type,
-        "window_size": window_size,
-        "t_interval": t_interval,
-        "session_file_names": [],
-        "results": []
-    } # end test dict
+        # extract out the train & val data from the current sample
+        train_pos_samples = subject_data["train_samples"]["train_split_samples"]
+        val_pos_samples = subject_data["train_samples"]["val_split_samples"]
 
-    # setup the dict used for each train/test split
-    results = {
-        "train_session": "",
-        "num_train_sessions": 1,
-        "test_sessions": [],
-        "num_test_sessions": 0,
-        "num_train_samples": 0,
-        "num_test_samples": 0,
-        "num_pos_train_samples": 0,
-        "num_neg_train_samples": 0,
-        "num_pos_test_samples": 0,
-        "num_neg_test_samples": 0,
-        "num_users_neg_train": 0,
-        "num_users_neg_test": 0,
-        "test_train_ratio": 0, # num_test_samples divided by the num_train_samples
-    } # end results dict
+        # extract out the train & val data from every other subject
 
+        # create labels for train & val data
+
+        # combine all data together
+
+        # train classifier for this subject
+        # data is shuffled with a constant 'random' number
+        # training is rebalanced based on the ratio of pos to neg samples
+        classifier = LogisticRegression(
+            class_weight="balanced", random_state=42
+        ).fit(train_samples, train_labels)
+        # store classifier???
+
+        # perform threshold tuning using validation set
+        threshold_tuning()
+        
+        # iterate over all subjects, using their test samples
+        this_subj_test_results = []
+        all_other_subj_test_results = []
+        for test_subj_index, test_subj_data in enumerate(subjects_data):
+            for session in test_subj_data["test_samples"]:
+                session_test()
+                if subj_index == test_subj_index:
+                    pass
+                else:
+                    pass
+            # end loop over a single session for testing
+        # end loop over all other subjects for testing
+    # end loop focusing on each subject as the positive case
+    # store overall test performance data into file
+# end run_test
+
+
+# applies the bc scheme, if applicable
+def apply_bc_scheme(bc_gen:bc.BioCapsuleGenerator,
+                    samples:"list[list[float]]",
+                    reference_subject:"list[float]"
+                    )-> "list[list[float]]":
+    pass
+
+
+# session test - does a test over a single session &
+# reports the performance metrics
+def session_test():
+    # apply biocapsule, if applicable
+    if use_bc == True:
+        bc_gen = bc.BioCapsuleGenerator()
+        train_samples = apply_bc_scheme(
+            bc_gen=bc_gen,
+            samples=train_samples,
+            reference_subject=ref_subj_feat_vect
+        ) # end apply_bc_scheme to train_samples
+        test_samples = apply_bc_scheme(
+            bc_gen=bc_gen,
+            samples=test_samples,
+            reference_subject=ref_subj_feat_vect
+        ) # end apply_bc_scheme to train_samples
+
+    # run classifier on test data
+    mean_acc = classifier.score(test_samples, test_labels)
+    # get confusion matrix to extract data
+    pred_test_labels = classifier.predict(test_samples)
+    conf_matrix = confusion_matrix(test_labels, pred_test_labels)
+    tn, fp, fn, tp = conf_matrix.ravel()
+    #far
+    far = fp / (fp + fn)
+    #frr
+    frr = fn / (tp + tn)
+    #eer
+    # generate performance metrics
+    # store data for single subject into file
+
+
+# creates a list containing all of one type of sample
+def combine_samples(group_A:list, # negative samples list
+                    group_B:list, # positive samples list
+                    )-> "tuple[list[list[float]], list[int]]":
+    len_A = len(group_A)
+    len_B = len(group_B)
+    labels_A = [0]*len_A
+    labels_B = [1]*len_B
+    labels = labels_A.extend(labels_B)
+    samples = group_A.extend(group_B)
+    return (samples, labels)
+
+
+# get the samples from a subject as train, validation, and test splits
+# for a single subject
+def get_subj_data(subj_dir:str,
+                     platform:Platform,
+                     t_interval:int,
+                     model_type:str,
+                    )-> "tuple[dict, dict]":
     # get list of sessions collected during
     # data collection stage
-    session_file_names = os.listdir(participant_dir)
+    session_file_names = os.listdir(subj_dir)
     session_file_names.sort()
     print(f"Num of sessions: {len(session_file_names)}")
     print(session_file_names)
     if len(session_file_names) != 13:
         print(f"Number of session file names is not the right number: {len(session_file_names)}")
 
-    # separate out the train/test sessions, based on platform
-    # if multi-platform, then only perform a single test
-    # using laptop for train, the rest for test
-
     # pull out the laptop file from the rest
     laptop_file_name = get_file_with_subcomponent(
         file_names=session_file_names,
         word_to_find="laptop"
     ) # end_get_file_with_subcomponent
+    if laptop_file_name == None:
+        print("No Laptop data... If using Multi-Platform, it won't work.")
+
+    # separate out the train/test sessions, based on platform
+    # if multi-platform, then only perform a single test
+    # using laptop for train, the rest for test
 
     # if using multi platform, then train is the
     # laptop file path the rest are for testing
+    # remove either way - we want it separate in both cases
     pos_train_file = None
     pos_test_files = None
     mobile_sess_names = remove_file_from_list(
@@ -241,7 +316,8 @@ def run_test(participant_dir:str,
         file_paths=session_file_names
     ) # end get_test_file_paths
     mobile_sess_names.sort()
-    
+
+    # load data based off of platform param
     if platform == Platform.SINGLE:
         # train is the first session from mobile
         # (due to potential file name issues,
@@ -260,227 +336,90 @@ def run_test(participant_dir:str,
     # collect pos & negative samples for training & testing
 
     # add back directory path for pos sample files
-    pos_train_path = os.path.join(participant_dir, pos_train_file)
-    pos_test_paths = add_back_path(participant_dir, pos_test_files)
+    pos_train_path = os.path.join(subj_dir, pos_train_file)
+    pos_test_paths = add_back_path(subj_dir, pos_test_files)
+   
     # get positive train & test samples from pos files
-    train_pos_samples, test_pos_samples = get_pos_samples(
+    train_samples, test_samples = get_samples(
         training_path=pos_train_path,
         test_paths=pos_test_paths,
         t_inverval=t_interval,
         model_type=model_type
     ) # end get_pos_samples
 
-    # get negative train, val, & test samples from remaining subjects
-    neg_train_samples, neg_val_samples, neg_test_samples = get_neg_samples(
-        subj_id=subj_id,
-        subj_loc=location,
-        t_interval=t_interval,
-        model_type=model_type,
-        platform=platform
-    ) # get_neg_samples
-
-    # combine train pos & train neg samples
-    # create labels for binary classification
-    train_samples, train_labels = combine_samples(train_neg_samples, train_pos_samples)
+    # organize subject's data into a dict
+    subject_data = {
+        "subject_ID": os.path.basename(subj_dir),
+        "train_samples": train_samples,
+        "test_samples": test_samples
+    } # end subject data
+    return subject_data
     
-    # combine test pos & test neg samples
-    # create labels for binary classification
-    test_samples, test_labels = combine_samples(test_neg_samples, test_pos_samples) 
 
-    # apply biocapsule, if applicable
-    if use_bc == True:
-        bc_gen = bc.BioCapsuleGenerator()
-        train_samples = apply_bc_scheme(
-            bc_gen=bc_gen,
-            samples=train_samples,
-            reference_subject=ref_subj_feat_vect
-        ) # end apply_bc_scheme to train_samples
-        test_samples = apply_bc_scheme(
-            bc_gen=bc_gen,
-            samples=test_samples,
-            reference_subject=ref_subj_feat_vect
-        ) # end apply_bc_scheme to train_samples
-
-    # train classifier for this subject
-    # data is shuffled with a constant 'random' number
-    # training is rebalanced based on the ratio of pos to neg samples
-    classifier = LogisticRegression(
-        class_weight="balanced", random_state=42
-    ).fit(train_samples, train_labels)
-    # store classifier???
-
-    # run classifier on test data
-    mean_acc = classifier.score(test_samples, test_labels)
-    # get confusion matrix to extract data
-    pred_test_labels = classifier.predict(test_samples)
-    conf_matrix = confusion_matrix(test_labels, pred_test_labels)
-    tn, fp, fn, tp = conf_matrix.ravel()
-    #far
-    far = fp / (fp + fn)
-    #frr
-    frr = fn / (tp + tn)
-    #eer
-    # generate performance metrics
-    # store data into file
-# end run_test
-
-
-# applies the bc scheme, if applicable
-def apply_bc_scheme(bc_gen:bc.BioCapsuleGenerator,
-                    samples:"list[list[float]]",
-                    reference_subject:"list[float]"
-                    )-> "list[list[float]]":
-    pass
-
-
-# creates a list containing all of one type of sample
-def combine_samples(group_A:list, # negative samples list
-                    group_B:list, # positive samples list
-                    )-> "tuple[list[list[float]], list[int]]":
-    len_A = len(group_A)
-    len_B = len(group_B)
-    labels_A = [0]*len_A
-    labels_B = [1]*len_B
-    labels = labels_A.extend(labels_B)
-    samples = group_A.extend(group_B)
-    return (samples, labels)
-
-
-# get pos samples, in train/test split
-def get_pos_samples(training_path:str, 
-                    test_paths:"list[str]",
-                    t_inverval:int,
-                    model_type:str,
-                    )-> "tuple[list, list]":
+# get samples, in train/val/test split
+def get_samples(training_path:str, 
+                test_paths:"list[str]",
+                t_inverval:int,
+                model_type:str,
+                train_split_percentage:float=0.8,
+                rand_shuffle_seed:int=42
+                )-> "tuple[dict, dict]":
     # get training positive samples
     # load data file from training_path
     data = load_json_gz_file(file_path=training_path)
-    train_pos_samples = get_feature_data(data=data,
+    samples = get_feature_data(data=data,
                                          t_interval=t_inverval,
                                          model_type=model_type)
-    test_pos_samples = []
+    # split the training samples into train & val sets
+    train_split_samples, val_split_samples, split_index = get_train_test_split(
+        samples=samples,
+        train_split_percentage=train_split_percentage,
+        rand_shuffle_seed=rand_shuffle_seed
+    ) # end get_train_test_split call
+    train_samples = {
+        "file_path": test_path,
+        "session_ID": data["MOBIO"]["session_ID"],
+        "split_index": split_index,
+        "suffle_seed": rand_shuffle_seed,
+        "train_split_percentage": train_split_percentage,
+        "train_split_samples": train_split_samples,
+        "val_split_samples": val_split_samples
+    } # end train samples dict
+
+    # grab the test samples from the remaining sessions
+    # keep track of sessions - we will score based off of
+    # sessions.
+    test_samples = []
+    test_paths.sort()
     for test_path in test_paths:
         data = load_json_gz_file(file_path=test_path)
-        test_pos_samples.extend(
-            get_feature_data(data=data, 
-                             t_interval=t_inverval, 
-                             model_type=model_type)
-        ) # end extend test_pos_samples
-    # return a tuple containing the train & test samples
-    return (train_pos_samples, test_pos_samples)
+        test_session = {
+            "file_path": test_path,
+            "session_ID": data["MOBIO"]["session_ID"],
+            "features": get_feature_data(data=data, 
+                            t_interval=t_inverval, 
+                            model_type=model_type)
+        } # end dict for a single test session
+        test_samples.append(test_session)
+    # end for over test session
+    
+    # return a tuple containing the train, val, & test samples
+    return (train_samples, test_samples)
 
 
-# get negative samples for both training & testing
-def get_neg_samples(subj_id:str,
-                    subj_loc:str,
-                    t_interval:int,
-                    model_type:str,
-                    platform:str)-> "tuple[list, list]":
-    # get a list of all other subject's directories
-    other_subj_paths = []
-    # loop over folders for each location
-    for loc in MOBIO_LOCATIONS:
-        loc_dir = os.path.join(BASE_DIR, loc)
-        # get a list of dirs in a location (correspond to subjects)
-        subj_dirs = os.listdir(loc_dir)
-        subj_dirs = add_back_loc_to_path(loc=loc, subj_dirs=subj_dirs)
-        # remove the training subject if in this location
-        if loc == subj_loc:
-            subj_dirs = remove_training_subj(
-                subj_id=subj_id, 
-                subj_dirs=subj_dirs
-            ) # end remove_training_subj call
-        other_subj_paths.extend(subj_dirs)
-    # end for loop over locations
-
-    # NOTE: MAKE SURE TO EXCLUDE/INCLUDE LAPTOP
-    #       DEPENDING ON PLATFORM PARAM!!!
-    train_neg_samples = []
-    test_neg_samples = []
-    # for complete holdouts, take all sessions (use platform param)
-    # and put into test_neg_samples
-    comp_holdout_paths, _ = get_subject_file_paths_from_dirs(
-        subj_dirs=complete_holdouts,
-        semi_holdout=False
-    ) # end get_subject_file_paths_from_dirs
-    for path in comp_holdout_paths:
-        data = load_json_gz_file(file_path=path)
-        test_neg_samples.extend(
-            get_feature_data(
-                data=data,
-                t_interval=t_interval,
-                model_type=model_type
-            ) # end get_feature_data
-        ) # end extend test_neg_samples
-
-    # for semi, split one sess for train_neg_samples
-    # the rest go into test_neg_samples
-    test_paths, train_paths = get_subject_file_paths_from_dirs(
-        subj_dirs=semi_holdouts,
-        semi_holdout=True
-    ) # end get_subject_file_paths_from_dirs
-    for path in test_paths:
-        data = load_json_gz_file(file_path=path)
-        test_neg_samples.extend( # add to test
-            get_feature_data(
-                data=data,
-                t_interval=t_interval,
-                model_type=model_type
-            ) # end get_feature_data
-        ) # end extend test_neg_samples
-    for path in train_paths:
-        data = load_json_gz_file(file_path=path)
-        train_neg_samples.extend( # add to train
-            get_feature_data(
-                data=data,
-                t_interval=t_interval,
-                model_type=model_type
-            ) # end get_feature_data
-        ) # end extend test_neg_samples
-    return (train_neg_samples, test_neg_samples)
-
-
-# get a list of data files to load from a list of dirs to search through
-def get_subject_file_paths_from_dirs(
-        subj_dirs:"list[str]",
-        semi_holdout:bool
-    )-> "tuple[list[str],list[str]]":
-    file_paths = []
-    train_paths = []
-    # check if we shouldn't holdout anthing
-    if semi_holdout == False:
-        for subj_dir in subj_dirs:
-            file_names = os.listdir(subj_dir)
-            for file_name in file_names:
-                file_paths.append(os.path.join(subj_dir, file_name))
-    else: # we should holdout one for train
-        for subj_dir in subj_dirs:
-            file_names = os.listdir(subj_dir)
-            file_names.sort()
-            train_paths.append(os.path.join(subj_dir, file_names[0]))
-            for file_name in file_names[1:]:
-                file_paths.append(os.path.join(subj_dir, file_name))
-    return (file_paths, train_paths)
-
-
-# helper - adds a location back to the elements of a list
-def add_back_loc_to_path(loc:str, subj_dirs:str)-> "list[str]":
-    new_list = []
-    for subj_dir in subj_dirs:
-        loc_path = os.path.join(loc, subj_dir)
-        new_list.append(os.path.join(BASE_DIR, loc_path))
-    return new_list
-
-
-# remove the subject dir of the training subject
-def remove_training_subj(subj_id:str, subj_dirs:"list[str]")-> "list[str]":
-    new_list = []
-    for subj_dir in subj_dirs:
-        if os.path.basename(subj_dir) != subj_id:
-            new_list.append(subj_dir)
-    if len(subj_dirs)-1 != len(new_list):
-        raise Exception("Failed to remove the subject from the location...")
-    return new_list
+# split training samples into test & val sets
+# default to 80-20 split
+def get_train_test_split(samples:"list[list[float]]", 
+                         train_split_percentage:float=0.8,
+                         rand_shuffle_seed:int=42
+                         )-> "tuple[list[list[float]], list[list[float]], int]":
+    # shuffle the samples for training before splitting
+    random.Random(x=rand_shuffle_seed).shuffle(samples)
+    # split train pos samples into train & val sets
+    split_index = int(len(samples) * train_split_percentage)
+    train_split_samples = samples[:split_index]
+    val_split_samples = samples[split_index:]
+    return (train_split_samples, val_split_samples, split_index)
 
 
 # returns the feature vectors selected for training/testing
@@ -524,9 +463,12 @@ def add_back_path(base_dir:str,  file_names:"list[str]")->"list[str]":
     return new_list
 
 
-# accumulate results for a single location
-# using generated test files from individual participants
-def aggregate_results():
+# accumulate results for a single subject
+def aggregate_results_test():
+    pass
+
+# accumulate the results across the entire dataset
+def aggregate_results_final():
     pass
 
 
