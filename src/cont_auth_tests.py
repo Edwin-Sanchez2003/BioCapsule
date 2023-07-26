@@ -150,14 +150,13 @@ def main():
             out_data = run_test(
                 participant_dir=os.path.join(input_dir, part_id),
                 location=os.path.basename(input_dir),
+                dataset_name=Dataset.MOBIO,
                 use_bc=False,
                 platform=Platform.MULTI,
-                model_type=model_type,
-                use_quantization=False,
-                dataset_name=Dataset.MOBIO,
-                classifier_type=Classifier.LOGISTIC_REGRESSION,
+                model_type=Model_Type.ARCFACE,
+                t_interval=10,
                 window_size=1,
-                wait_time=10,
+                classifier_type=Classifier.LOGISTIC_REGRESSION,
                 use_k_fold=False
             ) # end run_test function
 
@@ -166,17 +165,17 @@ def main():
 
 # run a test for a single participant,
 # given the input params
+# store the data generated for each invididual test for later
 def run_test(participant_dir:str,
              location:str,
+             dataset_name:Dataset,
              use_bc:bool,
-             platform:Enum,
-             model_type:Enum,
-             use_quantization:bool,
-             dataset_name:Enum,
-             classifier_type:Enum,
+             platform:Platform,
+             model_type:Model_Type,
+             t_interval:int,
              window_size:int,
-             wait_time:int,
-             use_k_fold:bool)-> dict:
+             classifier_type:Classifier,
+             use_k_fold:bool)-> Union[dict, None]:
     
     # the id of the subject (participant id)
     subj_id = os.path.basename(participant_dir)
@@ -184,25 +183,18 @@ def run_test(participant_dir:str,
     # the data to be saved as a json file
     out_subj_data = {
         "dataset": dataset_name,
-        "origin_path": participant_dir,
+        "origin_subj_dir": participant_dir,
         "subject_id": subj_id,
         "use_bc": use_bc,
         "platform": platform,
         "pre_proc_model": "mtcnn",
         "feat_ext_model": model_type,
-        "use_quantization": use_quantization,
         "classifier": classifier_type,
-        window_size: window_size,
-        wait_time: wait_time,
+        "window_size": window_size,
+        "t_interval": t_interval,
+        "session_file_names": [],
         "results": []
     } # end test dict
-
-    # get list of sessions collected during
-    # data collection stage
-    session_file_names = os.listdir(participant_dir)
-    session_file_names.sort()
-    print(f"Num of sessions: {len(session_file_names)}")
-    print(session_file_names)
 
     # setup the dict used for each train/test split
     results = {
@@ -221,95 +213,116 @@ def run_test(participant_dir:str,
         "test_train_ratio": 0, # num_test_samples divided by the num_train_samples
     } # end results dict
 
+    # get list of sessions collected during
+    # data collection stage
+    session_file_names = os.listdir(participant_dir)
+    session_file_names.sort()
+    print(f"Num of sessions: {len(session_file_names)}")
+    print(session_file_names)
+    if len(session_file_names) != 13:
+        print(f"Number of session file names is not the right number: {len(session_file_names)}")
+
+    # separate out the train/test sessions, based on platform
     # if multi-platform, then only perform a single test
     # using laptop for train, the rest for test
-    training_files = []
-    if platform == Platform.MULTI:
-        file_name = get_file_with_subcomponent(session_file_names, "laptop")
-        if file_name != None:
-            file_path = os.path.join(participant_dir, file_name)
-            training_files.append(file_path)
-        else:
-            pass
-            # need to make note that
-            # subject did not have a laptop version
-            # exclude from results
-    else:
-        # check if use_k_fold is set to true
-        if use_k_fold:
-            for file_name in session_file_names:
-                training_files.append(
-                    os.path.join(participant_dir, file_name)
-                ) # end append to training_files
-        else:
-            training_files = session_file_names
+
+    # pull out the laptop file from the rest
+    laptop_file_name = get_file_with_subcomponent(
+        file_names=session_file_names,
+        word_to_find="laptop"
+    ) # end_get_file_with_subcomponent
+
+    # if using multi platform, then train is the
+    # laptop file path the rest are for testing
+    pos_train_file = None
+    pos_test_files = None
+    mobile_sess_names = remove_file_from_list(
+        file_to_remove=laptop_file_name,
+        file_paths=session_file_names
+    ) # end get_test_file_paths
+    mobile_sess_names.sort()
     
-    # loop over training_files
-    # for multi-platform & non-k-fold this is only 1 file,
-    # but for the rest, this gives each session a chance
-    # as the train data (12-fold validation)
-    for training_path in training_files:
-        # get the list for the test paths
-        test_paths = get_test_file_paths(training_path, session_file_names)
-        # positive samples for training & testing
-        train_pos_samples, test_pos_samples = get_pos_samples(
-            training_path=training_path, 
-            test_paths=test_paths,
-            t_inverval=wait_time,
-            model_type=model_type
-        ) # end get pos samples from subject
+    if platform == Platform.SINGLE:
+        # train is the first session from mobile
+        # (due to potential file name issues,
+        # sort the sessions and select the first one)
+        pos_train_file = mobile_sess_names[0]
+        pos_test_files = remove_file_from_list(
+            file_to_remove=pos_train_file,
+            file_paths=mobile_sess_names
+        ) # end remove_file_from_list
+        assert len(pos_test_files) == (len(mobile_sess_names)-1)
+    else: # set up for multi
+        pos_train_file = laptop_file_name
+        pos_test_files = mobile_sess_names
+        assert len(pos_test_files) == (len(session_file_names)-1)
 
-        # load samples that are going to be our
-        # negative data during training.
-        # load samples from all other locations
-        train_neg_samples, test_neg_samples = get_neg_samples(
-            subj_id=subj_id,
-            subj_loc=location,
-            platform=platform
-        ) # end get_neg_samples
+    # collect pos & negative samples for training & testing
 
-        # combine train pos & train neg samples
-        # create labels for binary classification
-        train_samples, train_labels = combine_samples(train_neg_samples, train_pos_samples)
-        
-        # combine test pos & test neg samples
-        # create labels for binary classification
-        test_samples, test_labels = combine_samples(test_neg_samples, test_pos_samples) 
+    # add back directory path for pos sample files
+    pos_train_path = os.path.join(participant_dir, pos_train_file)
+    pos_test_paths = add_back_path(participant_dir, pos_test_files)
+    # get positive train & test samples from pos files
+    train_pos_samples, test_pos_samples = get_pos_samples(
+        training_path=pos_train_path,
+        test_paths=pos_test_paths,
+        t_inverval=t_interval,
+        model_type=model_type
+    ) # end get_pos_samples
 
-        # apply biocapsule, if applicable
-        if use_bc == True:
-            bc_gen = bc.BioCapsuleGenerator()
-            train_samples = apply_bc_scheme(
-                bc_gen=bc_gen,
-                samples=train_samples,
-                reference_subject=ref_subj_feat_vect
-            ) # end apply_bc_scheme to train_samples
-            test_samples = apply_bc_scheme(
-                bc_gen=bc_gen,
-                samples=test_samples,
-                reference_subject=ref_subj_feat_vect
-            ) # end apply_bc_scheme to train_samples
+    # get negative train, val, & test samples from remaining subjects
+    neg_train_samples, neg_val_samples, neg_test_samples = get_neg_samples(
+        subj_id=subj_id,
+        subj_loc=location,
+        t_interval=t_interval,
+        model_type=model_type,
+        platform=platform
+    ) # get_neg_samples
 
-        # train classifier for this subject
-        classifier = LogisticRegression(
-            class_weight="balanced", random_state=42
-        ).fit(train_samples, train_labels)
-        # store classifier???
+    # combine train pos & train neg samples
+    # create labels for binary classification
+    train_samples, train_labels = combine_samples(train_neg_samples, train_pos_samples)
+    
+    # combine test pos & test neg samples
+    # create labels for binary classification
+    test_samples, test_labels = combine_samples(test_neg_samples, test_pos_samples) 
 
-        # run classifier on test data
-        mean_acc = classifier.score(test_samples, test_labels)
-        # get confusion matrix to extract data
-        pred_test_labels = classifier.predict(test_samples)
-        conf_matrix = confusion_matrix(test_labels, pred_test_labels)
-        tn, fp, fn, tp = conf_matrix.ravel()
-        #far
-        far = fp / (fp + fn)
-        #frr
-        frr = fn / (tp + tn)
-        #eer
-        eer = (far + frr) / 2
-        # generate performance metrics
-        # store data into file
+    # apply biocapsule, if applicable
+    if use_bc == True:
+        bc_gen = bc.BioCapsuleGenerator()
+        train_samples = apply_bc_scheme(
+            bc_gen=bc_gen,
+            samples=train_samples,
+            reference_subject=ref_subj_feat_vect
+        ) # end apply_bc_scheme to train_samples
+        test_samples = apply_bc_scheme(
+            bc_gen=bc_gen,
+            samples=test_samples,
+            reference_subject=ref_subj_feat_vect
+        ) # end apply_bc_scheme to train_samples
+
+    # train classifier for this subject
+    # data is shuffled with a constant 'random' number
+    # training is rebalanced based on the ratio of pos to neg samples
+    classifier = LogisticRegression(
+        class_weight="balanced", random_state=42
+    ).fit(train_samples, train_labels)
+    # store classifier???
+
+    # run classifier on test data
+    mean_acc = classifier.score(test_samples, test_labels)
+    # get confusion matrix to extract data
+    pred_test_labels = classifier.predict(test_samples)
+    conf_matrix = confusion_matrix(test_labels, pred_test_labels)
+    tn, fp, fn, tp = conf_matrix.ravel()
+    #far
+    far = fp / (fp + fn)
+    #frr
+    frr = fn / (tp + tn)
+    #eer
+    # generate performance metrics
+    # store data into file
+# end run_test
 
 
 # applies the bc scheme, if applicable
@@ -318,6 +331,7 @@ def apply_bc_scheme(bc_gen:bc.BioCapsuleGenerator,
                     reference_subject:"list[float]"
                     )-> "list[list[float]]":
     pass
+
 
 # creates a list containing all of one type of sample
 def combine_samples(group_A:list, # negative samples list
@@ -330,6 +344,7 @@ def combine_samples(group_A:list, # negative samples list
     labels = labels_A.extend(labels_B)
     samples = group_A.extend(group_B)
     return (samples, labels)
+
 
 # get pos samples, in train/test split
 def get_pos_samples(training_path:str, 
@@ -376,15 +391,7 @@ def get_neg_samples(subj_id:str,
                 subj_dirs=subj_dirs
             ) # end remove_training_subj call
         other_subj_paths.extend(subj_dirs)
-    
-    # shuffle subject dirs, split into
-    # complete holdout & semi-holdout groups
-    rand_gen = random.Random(x=42)
-    rand_gen.shuffle(other_subj_paths)
-    # split as close as possible to 50/50
-    index_to_split_at = len(other_subj_paths) // 2
-    complete_holdouts = other_subj_paths[:index_to_split_at]
-    semi_holdouts = other_subj_paths[index_to_split_at:]
+    # end for loop over locations
 
     # NOTE: MAKE SURE TO EXCLUDE/INCLUDE LAPTOP
     #       DEPENDING ON PLATFORM PARAM!!!
@@ -491,15 +498,11 @@ def get_feature_data(data:dict, t_interval:int, model_type:str)-> "list[list[flo
 
 
 # get test files as a separate list
-def get_test_file_paths(train_path:str, file_paths:"list[str]")-> "list[str]":
+def remove_file_from_list(file_to_remove:str, file_paths:"list[str]")-> "list[str]":
     test_paths = []
     for file_path in file_paths:
-        if file_path != train_path:
+        if file_path != file_to_remove:
             test_paths.append(file_path)
-    if len(file_paths)-1 != len(test_paths):
-        print(test_paths)
-        print(train_path)
-        raise Exception("Failed to get test paths correctly...")
     return test_paths
 
 
@@ -511,6 +514,14 @@ def get_file_with_subcomponent(file_names:"list[str]", word_to_find:str)-> Union
             if name_slice == word_to_find:
                 return f_name
     return None
+
+
+# add back a directory to a list of file names
+def add_back_path(base_dir:str,  file_names:"list[str]")->"list[str]":
+    new_list = []
+    for file_name in file_names:
+        new_list.append(os.path.join(base_dir, file_name))
+    return new_list
 
 
 # accumulate results for a single location
