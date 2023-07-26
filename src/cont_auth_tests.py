@@ -155,7 +155,7 @@ def main():
                 t_interval=10,
                 model_type=Model_Type.ARCFACE
             ) # end get_subj_data call
-            subjects_data.append(subjects_data)
+            subjects_data.append(subject_data)
         # end loop over participants in a location
     # end loop over all directories to search through for data
     
