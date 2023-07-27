@@ -157,6 +157,7 @@ def main():
             # and load the data into memory.
             # only the data we need to run the tests
             print(f"Count: {subj_collect_count}, Retrieving Subject {part_id}")
+            tic = time.perf_counter()
             subject_data = get_subj_data(
                 subj_dir=os.path.join(input_dir, part_id),
                 platform=PLATFORM,
@@ -166,6 +167,8 @@ def main():
             if subject_data != None:
                 subjects_data.append(subject_data)
             subj_collect_count += 1
+            toc = time.perf_counter()
+            print(f"Time : {toc - tic:0.4f} seconds")
         # end loop over participants in a location
     # end loop over all directories to search through for data
     print("Finished retrieving data!")
@@ -235,7 +238,7 @@ def run_test(subjects_data:"list[dict]", # list of all user data split into trai
     # the whole subjects_data array will be used in every iteration,
     # but the classifier & test will be done with respect to the current
     # subject data dict being iterated over by the for loop
-    g_tp, g_fp, g_tn, g_fn = 0 # global tp, fp, tn, fn
+    g_tp, g_fp, g_tn, g_fn = 0,0,0,0 # global tp, fp, tn, fn
     pos_subj_results = []
     for subj_index, subject_data in enumerate(subjects_data):
         g_tic = time.perf_counter()
@@ -310,7 +313,7 @@ def run_test(subjects_data:"list[dict]", # list of all user data split into trai
         # iterate over all subjects, using their test samples
         this_subj_test_results = None
         all_other_subj_test_results = []
-        s_tp, s_fp, s_tn, s_fn = 0 # per-classifier-subject tp, fp, tn, fn
+        s_tp, s_fp, s_tn, s_fn = 0,0,0,0 # per-classifier-subject tp, fp, tn, fn
         for test_subj_index, test_subj_data in enumerate(subjects_data):
             # get a performance on each session using the threshold
             subj_results = {
@@ -319,7 +322,7 @@ def run_test(subjects_data:"list[dict]", # list of all user data split into trai
                 "threshold_tuning_data": threshold_data,
                 "sess_results": []
             } # subject results and metadata
-            tp, fp, tn, fn = 0
+            tp, fp, tn, fn = 0,0,0,0
             for session in test_subj_data["test_samples"]:
                 # results from a single session from a single user
                 results = session_test(
