@@ -22,14 +22,15 @@
 
     TODO:
      - write code to store only needed data for a test in uncompressed
-       json format, with only necessary data. Loading time is taking too long. (~26 minutes)
-       - prob not useful in the long run - 
+       json format, with only necessary data. Loading time is taking too long. (~21 minutes)
+       - prob not useful in the long run - need to generate differently for diff tests... (t_interval)
 """
 
 
 # imports
 import os
 import copy
+import math
 import time
 from typing import Union
 import random
@@ -371,6 +372,7 @@ def threshold_tuning(classifier:LogisticRegression,
         far = get_far(fp=fp, tn=tn)
         #frr
         frr = get_frr(fn=fn, tp=tp)
+        print(f"far: {far}, frr: {frr}")
         if is_equal_error_rate(far=far, frr=frr):
             return {
                 "tp": tp,
@@ -423,11 +425,10 @@ def get_tp_fp_tn_fn(thresh:float,
 
 
 # checks if far & frr are equal, with a given precision
-def is_equal_error_rate(far:int, frr:int, precision:float=0.01)-> bool:
-    if far <= frr:
-        if (far+precision) >= frr:
-            return True
-    return False
+def is_equal_error_rate(far:float, frr:float, precision:float=0.01)-> bool:
+    # if the difference is less than or equal to the precision, then return true
+    # if the difference is greater than the precision, then return false
+    return abs(far-frr) <= precision
 
 
 # applies the bc scheme, if applicable
