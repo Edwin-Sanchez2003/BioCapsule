@@ -70,6 +70,7 @@
 # imports
 import os
 import copy
+import time
 from typing import Union
 import random
 
@@ -86,17 +87,16 @@ BASE_DIR = "./MOBIO_extracted/one_sec_intervals/"
 OUT_DIR = "../MOBIO_extracted/test_results/"
 T_INTERVAL = 10
 USE_BC = True
-MODEL_TYPE = Model_Type.ARCFACE
-PLATFORM = Platform.MULTI
+MODEL_TYPE = Model_Type.ARCFACE.value
+PLATFORM = Platform.MULTI.value # ERROR - NOT ALL SUBJECTS HAVE LAPTOP VIDEOS!!!
 WINDOW_SIZE = 1
-CLASSIFIER_TYPE = Classifier.LOGISTIC_REGRESSION
+CLASSIFIER_TYPE = Classifier.LOGISTIC_REGRESSION.value
 USE_K_FOLD = False
 
 # load rs features for later bc use
 rs_data = load_json_gz_file(
     file_path="./MOBIO_extracted/one_sec_intervals/XX_removed_from_exp_XX/f210/unis_laptop_1_f210_01.json.gz")
-ref_subj_feat_vect = rs_data["frame_data"][0][MODEL_TYPE]
-
+ref_subj_feat_vect = rs_data["frame_data"][0]["feature_vectors"][MODEL_TYPE]
 # locations in MOBIO dataset
 MOBIO_LOCATIONS = [
     "but/",
@@ -147,25 +147,30 @@ def main():
 
     # loop over input dirs
     print("Retrieving Subject Data...")
+    long_tic = time.perf_counter()
     subjects_data = []
+    subj_collect_count = 1
     for input_dir in input_dirs:
         # loop over participants
         for part_id in os.listdir(input_dir):
             # get out the subject data for every subject
             # and load the data into memory.
             # only the data we need to run the tests
-            print(f"Retrieving Subject {part_id}")
+            print(f"Count: {subj_collect_count}, Retrieving Subject {part_id}")
             subject_data = get_subj_data(
                 subj_dir=os.path.join(input_dir, part_id),
-                platform=Platform.MULTI,
+                platform=PLATFORM,
                 t_interval=T_INTERVAL,
-                model_type=Model_Type.ARCFACE
+                model_type=MODEL_TYPE
             ) # end get_subj_data call
-            subjects_data.append(subject_data)
-            print("Data Retrieved!")
+            if subject_data != None:
+                subjects_data.append(subject_data)
+            subj_collect_count += 1
         # end loop over participants in a location
     # end loop over all directories to search through for data
-
+    print("Finished retrieving data!")
+    long_toc = time.perf_counter()
+    print(f"Time : {long_toc - long_tic:0.4f} seconds")
     # run a test generate a file containing
     # data on the test. include test params
     print("Running Test with the Following Params:")
@@ -199,6 +204,8 @@ def main():
         os.makedirs(OUT_DIR)
 
     # store out data in a file
+    print("Writing to file...")
+    tic = time.perf_counter()
     out_file_base_name = f"{USE_BC}_{MODEL_TYPE}_{PLATFORM}_0.json.gz"
     out_file_path = os.path.join(OUT_DIR, out_file_base_name)
     keepGoing = True
@@ -210,6 +217,9 @@ def main():
         else:
             keepGoing = False
     write_to_json_gz(out_file_path, out_data)
+    print("Written to file!")
+    toc = time.perf_counter()
+    print(f"Time : {toc - tic:0.4f} seconds")
 # end main
 
 
@@ -228,14 +238,19 @@ def run_test(subjects_data:"list[dict]", # list of all user data split into trai
     g_tp, g_fp, g_tn, g_fn = 0 # global tp, fp, tn, fn
     pos_subj_results = []
     for subj_index, subject_data in enumerate(subjects_data):
+        g_tic = time.perf_counter()
+        print("Starting test for a single subject...")
         # the id of the current subject (participant id)
         subj_id = subjects_data["subject_ID"]
 
         # extract out the train & val data from the current sample
+        print("Extracting pos data...")
         train_pos_samples = subject_data["train_samples"]["train_split_samples"]
         val_pos_samples = subject_data["train_samples"]["val_split_samples"]
 
         # extract out the train & val data from every other subject
+        print("Extracting neg data...")
+        ext_tic = time.perf_counter()
         train_neg_samples = []
         val_neg_samples = []
         for neg_subj_index, neg_subj_data in enumerate(subjects_data):
@@ -244,6 +259,9 @@ def run_test(subjects_data:"list[dict]", # list of all user data split into trai
                 val_neg_samples.extend(neg_subj_data["train_samples"]["val_split_samples"])
             # end if
         # end for over train & val data collection
+        ext_toc = time.perf_counter()
+        print("Finished extracting neg data!")
+        print(f"Time : {ext_toc - ext_tic:0.4f} seconds")
 
         # create labels for train & val data
         # combine all data together
@@ -253,6 +271,8 @@ def run_test(subjects_data:"list[dict]", # list of all user data split into trai
         # check if we should use bc
         bc_gen = bc.BioCapsuleGenerator()
         if use_bc:
+            print("Creating BioCapsules...")
+            bc_tic = time.perf_counter()
             train_samples = apply_bc_scheme(
                 bc_gen=bc_gen,
                 samples=train_samples,
@@ -263,16 +283,25 @@ def run_test(subjects_data:"list[dict]", # list of all user data split into trai
                 samples=val_samples,
                 reference_subject=ref_subj_feat_vect
             ) # end apply_bc_scheme
-
+            bc_toc = time.perf_counter()
+            print("Finished creating BCs!")
+            print(f"Time : {bc_toc - bc_tic:0.4f} seconds")
         # train classifier for this subject
         # data is shuffled with a constant 'random' number
         # training is rebalanced based on the ratio of pos to neg samples
+
+        print("Training Classifier...")
+        c_tic = time.perf_counter()
         classifier = LogisticRegression(
             class_weight="balanced", random_state=42
         ).fit(train_samples, train_labels)
+        c_toc = time.perf_counter()
+        print(f"Time : {c_toc - c_tic:0.4f} seconds")
+        print("Classifier trained!")
         # store classifier???
 
         # perform threshold tuning using validation set
+
         threshold_data = threshold_tuning(classifier=classifier,
                          val_samples=val_samples,
                          val_labels=val_labels
@@ -344,6 +373,8 @@ def run_test(subjects_data:"list[dict]", # list of all user data split into trai
             "frr": get_frr(fn=s_fn, tp=s_tp)
         } # end pos_subj_results
         pos_subj_results.append(pos_subj_result)
+        g_toc = time.perf_counter()
+        print(f"Time : {g_toc - g_tic:0.4f} seconds")
     # end loop focusing on each subject as the positive case
 
     # get final results over every subject's data
@@ -537,8 +568,6 @@ def get_subj_data(subj_dir:str,
     # data collection stage
     session_file_names = os.listdir(subj_dir)
     session_file_names.sort()
-    print(f"Num of sessions: {len(session_file_names)}")
-    print(session_file_names)
     if len(session_file_names) != 13:
         print(f"Number of session file names is not the right number: {len(session_file_names)}")
 
@@ -566,7 +595,7 @@ def get_subj_data(subj_dir:str,
     mobile_sess_names.sort()
 
     # load data based off of platform param
-    if platform == Platform.SINGLE:
+    if platform == Platform.SINGLE.value:
         # train is the first session from mobile
         # (due to potential file name issues,
         # sort the sessions and select the first one)
@@ -579,7 +608,11 @@ def get_subj_data(subj_dir:str,
     else: # set up for multi
         pos_train_file = laptop_file_name
         pos_test_files = mobile_sess_names
-        assert len(pos_test_files) == (len(session_file_names)-1)
+        if len(pos_test_files) != (len(session_file_names)-1):
+            print("This subject does not have laptop data... subject will be ignored")
+            print(f"subject_id: {os.path.basename(subj_dir)}")
+            return None
+        #assert len(pos_test_files) == (len(session_file_names)-1)
 
     # collect pos & negative samples for training & testing
 
@@ -625,7 +658,7 @@ def get_samples(training_path:str,
         rand_shuffle_seed=rand_shuffle_seed
     ) # end get_train_test_split call
     train_samples = {
-        "file_path": test_path,
+        "file_path": training_path,
         "session_ID": data["MOBIO"]["session_ID"],
         "split_index": split_index,
         "suffle_seed": rand_shuffle_seed,
@@ -679,7 +712,7 @@ def get_feature_data(data:dict, t_interval:int, model_type:str)-> "list[list[flo
     num_features = len(data["frame_data"])
     for t_index in range(0, num_features, t_interval):
         feature_vectors.append(
-            data["frame_data"][t_index][model_type]
+            data["frame_data"][t_index]["feature_vectors"][model_type]
         ) # end append feature vector to list of feature vectors
     return feature_vectors
 
