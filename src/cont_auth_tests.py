@@ -81,6 +81,17 @@ from sklearn.metrics import confusion_matrix
 from test_enums import *
 from data_tools import *
 
+# Params #
+BASE_DIR = "./MOBIO_extracted/one_sec_intervals/"
+OUT_DIR = "../MOBIO_extracted/test_results/"
+T_INTERVAL = 10
+USE_BC = True
+MODEL_TYPE = Model_Type.ARCFACE
+PLATFORM = Platform.MULTI
+WINDOW_SIZE = 1
+CLASSIFIER_TYPE = Classifier.LOGISTIC_REGRESSION
+USE_K_FOLD = False
+
 # load rs features for later bc use
 rs_data = load_json_gz_file(
     file_path="./MOBIO_extracted/one_sec_intervals/XX_removed_from_exp_XX/f210/unis_laptop_1_f210_01.json.gz")
@@ -95,17 +106,6 @@ MOBIO_LOCATIONS = [
     "unis/",
     "uoulu/"
 ] # end mobio locations
-
- # Params #
-BASE_DIR = "./MOBIO_extracted/one_sec_intervals/"
-OUT_DIR = "../MOBIO_extracted/test_results/"
-T_INTERVAL = 10
-USE_BC = True
-MODEL_TYPE = Model_Type.ARCFACE
-PLATFORM = Platform.MULTI
-WINDOW_SIZE = 1
-CLASSIFIER_TYPE = Classifier.LOGISTIC_REGRESSION
-USE_K_FOLD = False
 
 def main():
     """
@@ -172,11 +172,10 @@ def main():
     print(f"USE_BC: {USE_BC}")
     print(f"MODEL_TYPE: {MODEL_TYPE}")
     print(f"PLATFORM: {PLATFORM}")
-    print(f"USE_BC: {USE_BC}")
-    print(f"USE_BC: {USE_BC}")
-    print(f"USE_BC: {USE_BC}")
-    print(f"USE_BC: {USE_BC}")
-    print(f"USE_BC: {USE_BC}")
+    print(f"T_INTERVAL: {T_INTERVAL}")
+    print(f"WINDOW_SIZE: {WINDOW_SIZE}")
+    print(f"CLASSIFIER_TYPE: {CLASSIFIER_TYPE}")
+    print(f"USE_K_FOLD: {USE_K_FOLD}")
     
     # print out all parameters set by the user here.
     out_data = run_test(
@@ -186,6 +185,14 @@ def main():
         classifier_type=CLASSIFIER_TYPE,
         use_k_fold=USE_K_FOLD
     ) # end run_test
+
+    # print out results to see
+    print(f"TP: {out_data['tp']}")
+    print(f"FP: {out_data['tp']}")
+    print(f"TN: {out_data['tp']}")
+    print(f"FN: {out_data['tp']}")
+    print(f"FAR: {out_data['far']}")
+    print(f"FRR: {out_data['frr']}")
 
     # store out data in a file
     out_file_name = f"{USE_BC}_{MODEL_TYPE}_{PLATFORM}.json.gz"
