@@ -139,14 +139,15 @@ def main():
     # store out data in a file
     print("Writing to file...")
     tic = time.perf_counter()
-    out_file_base_name = f"{USE_BC}_{MODEL_TYPE}_{PLATFORM}_0.json.gz"
-    out_file_path = os.path.join(OUT_DIR, out_file_base_name)
+    out_file_name = f"{USE_BC}_{MODEL_TYPE}_{PLATFORM}_0.json.gz"
+    out_file_path = os.path.join(OUT_DIR, out_file_name)
     keepGoing = True
     sentry = 0
     while keepGoing:
         sentry += 1
         if os.path.isfile(out_file_path):
-            out_file_path = f"{USE_BC}_{MODEL_TYPE}_{PLATFORM}_{sentry}.json.gz"
+            out_file_name = f"{USE_BC}_{MODEL_TYPE}_{PLATFORM}_{sentry}.json.gz"
+            out_file_path = os.path.join(OUT_DIR, out_file_name)
         else:
             keepGoing = False
     write_to_json_gz(out_file_path, out_data)
