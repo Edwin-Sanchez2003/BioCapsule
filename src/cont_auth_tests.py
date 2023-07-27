@@ -23,6 +23,7 @@
     TODO:
      - write code to store only needed data for a test in uncompressed
        json format, with only necessary data. Loading time is taking too long. (~26 minutes)
+       - prob not useful in the long run - 
 """
 
 
@@ -310,11 +311,22 @@ def run_test(subjects_data:"list[dict]", # list of all user data split into trai
     # end loop focusing on each subject as the positive case
 
     # get final results over every subject's data
+    print(f"USE_BC: {USE_BC}")
+    print(f"MODEL_TYPE: {MODEL_TYPE}")
+    print(f"PLATFORM: {PLATFORM}")
+    print(f"T_INTERVAL: {T_INTERVAL}")
+    print(f"WINDOW_SIZE: {WINDOW_SIZE}")
+    print(f"CLASSIFIER_TYPE: {CLASSIFIER_TYPE}")
+    print(f"USE_K_FOLD: {USE_K_FOLD}")
+    
     all_subj_results = {
         "use_bc": use_bc,
-        "use_k_fold": use_k_fold,
-        "classifier": classifier_type,
+        "model_type": MODEL_TYPE,
+        "platform": PLATFORM,
+        "t_interval": T_INTERVAL,
         "window_size": window_size,
+        "classifier": classifier_type,
+        "use_k_fold": use_k_fold,
         "tp": g_tp,
         "fp": g_fp,
         "tn": g_tn,
