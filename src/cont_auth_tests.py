@@ -194,9 +194,21 @@ def main():
     print(f"FAR: {out_data['far']}")
     print(f"FRR: {out_data['frr']}")
 
+    # make sure output dir exists
+    if os.path.isdir(OUT_DIR) == False:
+        os.makedirs(OUT_DIR)
+
     # store out data in a file
-    out_file_name = f"{USE_BC}_{MODEL_TYPE}_{PLATFORM}.json.gz"
-    out_file_path = os.path.join(OUT_DIR, out_file_name)
+    out_file_base_name = f"{USE_BC}_{MODEL_TYPE}_{PLATFORM}_0.json.gz"
+    out_file_path = os.path.join(OUT_DIR, out_file_base_name)
+    keepGoing = True
+    sentry = 0
+    while keepGoing:
+        sentry += 1
+        if os.path.isfile(out_file_path):
+            out_file_path = f"{USE_BC}_{MODEL_TYPE}_{PLATFORM}_{sentry}.json.gz"
+        else:
+            keepGoing = False
     write_to_json_gz(out_file_path, out_data)
 # end main
 
