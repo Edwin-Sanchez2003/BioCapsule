@@ -7,52 +7,6 @@
     with a primary goal of testing the system with and
     without biocapsule involved.
 
-    TODO:
-    - k-fold across sessions (13 fold validation)
-    - set time parameter (1 second intervals)
-    - window size for the authentication decision (how many scores to average)
-      from previous decisions
-        - what averaging algorithm to use
-    - with and w/out biocapsule
-        - graph feat. vectors for an individual with and without biocapsule
-    - CA-MMOC Classifiers vs. F-MMOC Classifiers
-    - quantized vs. non-quantized
-    - MOBIO and YouTube Faces
-    - FaceNet vs. ArcFace
-    - Measure speed at some point?
-    - Single Platform vs. Multi Platform
-
-    Output Data:
-    - organize into a folder for each test,
-      for each location, and for each subject 
-      in each location
-    - should generate a json file that contains
-      aggregated results at the root of each
-      individual test
-    - document if any subjects were skipped during testing
-
-    Questions:
-    - how many users should I use for negative samples?
-    - all of the other users? Use the same session for
-    all other users for negative samples for training,
-    then use all other sessions from negative users for
-    testing
-    - or should I only use negative samples from the subject's
-      location? Then use the rest of the locations as negative
-      samples?
-    Thoughts:
-    - If I use all of the other users as negative samples during 
-      training, then that would be poluting the test results!
-    Decision:
-    - Load single session of user for positive samples
-        - the rest of the sessions are test sessions
-    - Load half of all other users for negative samples
-        - only use 1 session for training negative samples,
-        - the rest for testing negative samples
-    - Test on ALL other people, but organize results to
-      distinguish between users used for training and users
-      used for testing
-
     Dataset wide statistics:
     - how far apart are the feature embeddings of all of the samples?
     - what is the avg. euclidean dist betw. feature embeddings of users?
@@ -63,6 +17,7 @@
 
     MOBIO Notes:
     - OMIT f210 from unis!!! Only 1 session exists for this individual
+    - OMIT f218 !!! No laptop data
     - the rest have all 13 sessions (12 mobile, 1 laptop)
 """
 
@@ -108,38 +63,6 @@ MOBIO_LOCATIONS = [
 ] # end mobio locations
 
 def main():
-    """
-    Set Params:
-    - bc or no bc
-    - time for sampling (only for test???)
-    - window size
-        - averaging method
-        - maybe use the averaging method introduced
-          in operating systems???
-    - single vs multi platform
-        - multi platform can't do k-fold val
-    - FaceNet vs ArcFace
-    - quantized vs non-quantized
-    - dataset to use MOBIO vs. YouTubeFaces
-    - classifier type (for authentication decision)
-    - play w/feature vector size???
-
-    # pick a location. iterate over the location
-        # pick a participant. get all of their sessions
-        # tracked as the compressed files
-        
-        # get the number of sessions they have
-        # separate out laptop version
-        # that will be our k in k-fold validation
-
-        # for k, select one session for training
-        # and the rest for testing
-            # train a classifier on the train
-            # data. test on the test data.
-            
-            # store output in an easy to aggregate manner
-    """
-
     # get all of the MOBIO locations as input directories
     input_dirs = []
     for loc_path in MOBIO_LOCATIONS:
@@ -244,7 +167,7 @@ def run_test(subjects_data:"list[dict]", # list of all user data split into trai
         g_tic = time.perf_counter()
         print("Starting test for a single subject...")
         # the id of the current subject (participant id)
-        subj_id = subjects_data["subject_ID"]
+        subj_id = subject_data["subject_ID"]
 
         # extract out the train & val data from the current sample
         print("Extracting pos data...")
@@ -555,8 +478,10 @@ def combine_samples(group_A:list, # negative samples list
     else:
         labels_A = [1]*len_A
         labels_B = [0]*len_B
-    labels = labels_A.extend(labels_B)
-    samples = group_A.extend(group_B)
+    labels_A.extend(labels_B)
+    group_A.extend(group_B)
+    labels = labels_A
+    samples = group_A
     return (samples, labels)
 
 
