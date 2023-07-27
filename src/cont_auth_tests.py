@@ -19,6 +19,10 @@
     - OMIT f210 from unis!!! Only 1 session exists for this individual
     - OMIT f218 !!! No laptop data
     - the rest have all 13 sessions (12 mobile, 1 laptop)
+
+    TODO:
+     - write code to store only needed data for a test in uncompressed
+       json format, with only necessary data. Loading time is taking too long. (~26 minutes)
 """
 
 
@@ -30,6 +34,8 @@ from typing import Union
 import random
 
 import biocapsule as bc
+
+import numpy as np
 
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import confusion_matrix
@@ -418,7 +424,9 @@ def apply_bc_scheme(bc_gen:bc.BioCapsuleGenerator,
                     )-> "list[list[float]]":
     bc_samples = []
     for sample in samples:
-        bc_samples.append(bc_gen.biocapsule(sample, reference_subject))
+        bc_samples.append(
+            bc_gen.biocapsule(np.array(sample), np.array(reference_subject))
+        ) # end append to bc_samples
     return bc_samples
 
 
