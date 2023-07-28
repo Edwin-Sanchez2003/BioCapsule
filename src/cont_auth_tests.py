@@ -20,6 +20,12 @@
     - OMIT f218 !!! No laptop data
     - the rest have all 13 sessions (12 mobile, 1 laptop)
 
+
+    ISSUE!!!!
+     - Threshold tuning doesn't move very far before being locked in!!
+      - ~ 0.07-0.08 (meaning any probabilities above these values pass as true positives)
+            ^^^ That is shit!
+
     TODO:
      - write code to store only needed data for a test in uncompressed
        json format, with only necessary data. Loading time is taking too long. (~21 minutes)
@@ -62,11 +68,11 @@ rs_data = load_json_gz_file(
 ref_subj_feat_vect = rs_data["frame_data"][0]["feature_vectors"][MODEL_TYPE]
 # locations in MOBIO dataset
 MOBIO_LOCATIONS = [
-    "but/",
-    "idiap/",
-    "lia/",
-    "uman/",
-    "unis/",
+    #"but/",
+    #"idiap/",
+    #"lia/",
+    #"uman/",
+    #"unis/",
     "uoulu/"
 ] # end mobio locations
 
@@ -127,9 +133,9 @@ def main():
 
     # print out results to see
     print(f"TP: {out_data['tp']}")
-    print(f"FP: {out_data['tp']}")
-    print(f"TN: {out_data['tp']}")
-    print(f"FN: {out_data['tp']}")
+    print(f"FP: {out_data['fp']}")
+    print(f"TN: {out_data['tn']}")
+    print(f"FN: {out_data['fn']}")
     print(f"FAR: {out_data['far']}")
     print(f"FRR: {out_data['frr']}")
 
@@ -286,13 +292,19 @@ def run_test(subjects_data:"list[dict]", # list of all user data split into trai
             subj_results["fp"] = fp
             subj_results["tn"] = tn
             subj_results["fn"] = fn
-            subj_results["far"] = get_far(fp=fp, tn=tn)
-            subj_results["frr"] = get_frr(fn=fn, tp=tp)
 
             # where to put test results
-            if subj_index == test_subj_index:
+            if subj_results["subj_id_test"] == subj_results["subj_id_train"]:
+                print("Finished Positive Test!!!")
+                print(f"subj_id_test: {subj_results['subj_id_test']}")
+                print(f"subj_id_train: {subj_results['subj_id_train']}")
+                print(subject_data["subject_ID"])
+                print(neg_subj_data["subject_ID"])
+                print(f"tp: {tp}, fp: {fp} tn: {tn} fn: {fn}")
+                print(f"confusion matrix: {results['conf_matrix']}")
                 this_subj_test_results = subj_results
             else:
+                print("Finished Negative Test")
                 all_other_subj_test_results.append(subj_results)
         # end loop over all other subjects for testing
         # per-classifier-subject results
@@ -304,8 +316,6 @@ def run_test(subjects_data:"list[dict]", # list of all user data split into trai
             "fp": s_fp,
             "tn": s_tn,
             "fn": s_fn,
-            "far": get_far(fp=s_fp, tn=s_tn),
-            "frr": get_frr(fn=s_fn, tp=s_tp)
         } # end pos_subj_results
         pos_subj_results.append(pos_subj_result)
         g_toc = time.perf_counter()
@@ -321,7 +331,8 @@ def run_test(subjects_data:"list[dict]", # list of all user data split into trai
     print(f"CLASSIFIER_TYPE: {CLASSIFIER_TYPE}")
     print(f"USE_K_FOLD: {USE_K_FOLD}")
     
-    all_subj_results = {
+    # create a dict to hold the important data for the final results of the test
+    final_results = {
         "use_bc": use_bc,
         "model_type": MODEL_TYPE,
         "platform": PLATFORM,
@@ -339,14 +350,20 @@ def run_test(subjects_data:"list[dict]", # list of all user data split into trai
     } # end results for all subjects' performance
 
     # return data
-    return all_subj_results
+    return final_results
 # end run_test
 
-
+# False Acceptance Rate
 def get_far(fp, tn):
+    if (fp == 0) and (tn == 0):
+        return None
     return fp / (fp + tn)
 
+
+# False Rejection Rate
 def get_frr(fn, tp):
+    if (fn == 0) and (tp == 0):
+        return None
     return fn / (fn + tp)
 
 # return the threshold between pos and neg samples
@@ -354,15 +371,19 @@ def get_frr(fn, tp):
 def threshold_tuning(classifier:LogisticRegression,
                      val_samples:"list[list[float]]",
                      val_labels:"list[int]",
-                     start:int=1,
-                     stop:int=100,
+                     start:int=1, # start at 1 percent confidence
+                     stop:int=100, # stop before 100 percent confidence
+                     step:int=1, # walk up from start to stop
                      precision:float=0.01)-> "dict":
     # run classifier on validation samples to get probability scores
     preds = classifier.predict_proba(val_samples)
     # loop over thresholds
-    for i in range(start, stop):
+    # walk from the start precentage confidence down to the stop precision confidence,
+    # checking whether or not to stop as we've hit an eer rate
+    for i in range(start, stop, step):
         thresh = float(i*precision)
-        tp, fp, tn, fn = get_tp_fp_tn_fn(
+        #print(f'Threshold: {thresh}')
+        (tp, fp, tn, fn), conf_matrix = get_tp_fp_tn_fn(
             thresh=thresh,
             gt_labels=val_labels,
             preds=preds
@@ -372,8 +393,9 @@ def threshold_tuning(classifier:LogisticRegression,
         far = get_far(fp=fp, tn=tn)
         #frr
         frr = get_frr(fn=fn, tp=tp)
-        print(f"far: {far}, frr: {frr}")
+        #print(f"far: {far}, frr: {frr}")
         if is_equal_error_rate(far=far, frr=frr):
+            print(f"EER has been found! -> far: {far}, frr: {frr} | threshold: {thresh}")
             return {
                 "tp": tp,
                 "fp": fp,
@@ -384,15 +406,7 @@ def threshold_tuning(classifier:LogisticRegression,
                 "threshold": thresh
             } # return threshold data dict
     # end loop over thresholds to test
-    return {
-        "tp": None,
-        "fp": None,
-        "tn": None,
-        "fn": None,
-        "far": None,
-        "frr": None,
-        "threshold": 0.5
-    } # return threshold data dict # if eer isn't achieved...
+    raise Exception("Did not find an equal error rate - was the validation data setup correctly?")
 # threshold tuning
 
 
@@ -401,34 +415,28 @@ def get_tp_fp_tn_fn(thresh:float,
                     gt_labels:"list[int]",
                     preds:"list[tuple[int, int]]"
                     )->"tuple[int, int, int, int]":
-    tp, fp, tn, fn = 0
-    for gt_label, pred_prob in zip(gt_labels, preds):
+    predicted_labels = []
+    for pred_prob in preds:
         # check the positive class probability
-        cls = 0
-        if pred_prob[1] > thresh:
-            cls = 1
-        
-        # check if the predicted label is a tp, fp, tn or fn
-        if gt_label == 1:
-            if cls == 1:
-                tp += 1
-            else: # cls = 0
-                fn += 1
-        else: # gt_label = 0
-            if cls == 0:
-                tn += 1
-            else: # cls = 0
-                fp += 1
-        # end if deciding tp, fp, tn, fn
-    # end loop over ground truth & predicted labels
-    return tp, fp, tn, fn
+        if pred_prob[1] >= thresh:
+            predicted_labels.append(1)
+        else:
+            predicted_labels.append(0)
+    # end loop accumulating predicted labels
+
+    # get confusion matrix
+    conf_matrix = confusion_matrix(y_true=gt_labels, y_pred=predicted_labels, labels=[0, 1])
+    tn, fp, fn, tp = conf_matrix.ravel()
+    return (tp, fp, tn, fn), conf_matrix
 
 
 # checks if far & frr are equal, with a given precision
 def is_equal_error_rate(far:float, frr:float, precision:float=0.01)-> bool:
     # if the difference is less than or equal to the precision, then return true
     # if the difference is greater than the precision, then return false
-    return abs(far-frr) <= precision
+    if (far == None) or (frr == None):
+        return False
+    return (abs(far-frr) <= precision)
 
 
 # applies the bc scheme, if applicable
@@ -464,25 +472,19 @@ def session_test(classifier:LogisticRegression,
     # run classifier on test data
     preds = classifier.predict_proba(test_samples)
     # get confusion matrix to extract data
-    tp, fp, tn, fn = get_tp_fp_tn_fn(
+    (tp, fp, tn, fn), conf_matrix = get_tp_fp_tn_fn(
         thresh=threshold,
         gt_labels=test_labels,
         preds=preds
     ) # end get_tp_fp_tn_fn
-    # generate performance metrics
-    #far
-    far = get_far(fp=fp, tn=tn)
-    #frr
-    frr = get_frr(fn=fn, tp=tp)
     # store data for single subject into dict
     results = {
         "tp": tp,
         "fp": fp,
         "tn": tn,
         "fn": fn,
-        "far": far,
-        "frr": frr,
-        "threshold":threshold
+        "threshold":threshold,
+        "conf_matrix": conf_matrix
     } # end results
     return results
 
