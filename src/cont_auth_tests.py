@@ -55,12 +55,14 @@ from data_tools import *
 BASE_DIR = "./MOBIO_extracted/one_sec_intervals/"
 OUT_DIR = "./MOBIO_extracted/test_results/"
 T_INTERVAL = 10
-USE_BC = True
+USE_BC = False
 MODEL_TYPE = Model_Type.ARCFACE.value
 PLATFORM = Platform.MULTI.value # ERROR - NOT ALL SUBJECTS HAVE LAPTOP VIDEOS!!!
 WINDOW_SIZE = 1
 CLASSIFIER_TYPE = Classifier.LOGISTIC_REGRESSION.value
 USE_K_FOLD = False
+
+SAME_RS = True
 
 # load rs features for later bc use
 rs_data = load_json_gz_file(
@@ -68,11 +70,11 @@ rs_data = load_json_gz_file(
 ref_subj_feat_vect = rs_data["frame_data"][0]["feature_vectors"][MODEL_TYPE]
 # locations in MOBIO dataset
 MOBIO_LOCATIONS = [
-    #"but/",
-    #"idiap/",
-    #"lia/",
-    #"uman/",
-    #"unis/",
+    "but/",
+    "idiap/",
+    "lia/",
+    "uman/",
+    "unis/",
     "uoulu/"
 ] # end mobio locations
 
@@ -108,8 +110,8 @@ def main():
             print(f"Time : {toc - tic:0.4f} seconds")
         # end loop over participants in a location
     # end loop over all directories to search through for data
-    print("Finished retrieving data!")
     long_toc = time.perf_counter()
+    print("Finished retrieving data!")
     print(f"Time : {long_toc - long_tic:0.4f} seconds")
     # run a test generate a file containing
     # data on the test. include test params
@@ -123,6 +125,8 @@ def main():
     print(f"USE_K_FOLD: {USE_K_FOLD}")
     
     # print out all parameters set by the user here.
+    print("Beginning Testing...")
+    tic = time.perf_counter()
     out_data = run_test(
         subjects_data=subjects_data,
         use_bc=USE_BC,
@@ -130,6 +134,9 @@ def main():
         classifier_type=CLASSIFIER_TYPE,
         use_k_fold=USE_K_FOLD
     ) # end run_test
+    toc = time.perf_counter()
+    print("Finished Testing!")
+    print(f"Time : {toc - tic:0.4f} seconds")
 
     # print out results to see
     print(f"TP: {out_data['tp']}")
@@ -144,7 +151,7 @@ def main():
         os.makedirs(OUT_DIR)
 
     # store out data in a file
-    print("Writing to file...")
+    print("Writing results to file...")
     tic = time.perf_counter()
     out_file_name = f"{USE_BC}_{MODEL_TYPE}_{PLATFORM}_0.json.gz"
     out_file_path = os.path.join(OUT_DIR, out_file_name)
@@ -158,8 +165,8 @@ def main():
         else:
             keepGoing = False
     write_to_json(out_file_path, out_data)
-    print("Written to file!")
     toc = time.perf_counter()
+    print("Finished writing to file!")
     print(f"Time : {toc - tic:0.4f} seconds")
 # end main
 
@@ -178,9 +185,10 @@ def run_test(subjects_data:"list[dict]", # list of all user data split into trai
     # subject data dict being iterated over by the for loop
     g_tp, g_fp, g_tn, g_fn = 0,0,0,0 # global tp, fp, tn, fn
     pos_subj_results = []
+    num_subjects = len(subjects_data)
     for subj_index, subject_data in enumerate(subjects_data):
         g_tic = time.perf_counter()
-        print("Starting test for a single subject...")
+        print(f"Starting test for a single subject... {subj_index+1} of {num_subjects}")
         # the id of the current subject (participant id)
         subj_id = subject_data["subject_ID"]
 
@@ -263,6 +271,12 @@ def run_test(subjects_data:"list[dict]", # list of all user data split into trai
             tp, fp, tn, fn = 0,0,0,0
 # test labels should be parameterized for whether its a positive subject or negative subject!!!
             for session in test_subj_data["test_samples"]:
+                test_labels = None
+                if subj_results["subj_id_test"] == subj_results["subj_id_train"]:
+                    test_labels = [1]*len(session["features"])
+                else:
+                    test_labels = [0]*len(session["features"])
+
                 # results from a single session from a single user
                 results = session_test(
                     classifier=classifier,
@@ -270,7 +284,7 @@ def run_test(subjects_data:"list[dict]", # list of all user data split into trai
                     bc_gen=bc_gen,
                     use_bc=use_bc,
                     test_samples=session["features"],
-                    test_labels=[0]*len(session["features"])
+                    test_labels=test_labels
                 ) # end test for single session
                 tp += int(results["tp"])
                 fp += int(results["fp"])
@@ -296,13 +310,6 @@ def run_test(subjects_data:"list[dict]", # list of all user data split into trai
 
             # where to put test results
             if subj_results["subj_id_test"] == subj_results["subj_id_train"]:
-                print("Finished Positive Test!!!")
-                print(f"subj_id_test: {subj_results['subj_id_test']}")
-                print(f"subj_id_train: {subj_results['subj_id_train']}")
-                print(subject_data["subject_ID"])
-                print(neg_subj_data["subject_ID"])
-                print(f"tp: {tp}, fp: {fp} tn: {tn} fn: {fn}")
-                print(f"confusion matrix: {results['conf_matrix']}")
                 this_subj_test_results = subj_results
             else:
                 print("Finished Negative Test")
@@ -382,31 +389,32 @@ def threshold_tuning(classifier:LogisticRegression,
     # loop over thresholds
     # walk from the start precentage confidence down to the stop precision confidence,
     # checking whether or not to stop as we've hit an eer rate
-    for i in range(start, stop, step):
-        thresh = float(i*precision)
-        #print(f'Threshold: {thresh}')
-        (tp, fp, tn, fn), conf_matrix = get_tp_fp_tn_fn(
-            thresh=thresh,
-            gt_labels=val_labels,
-            preds=preds
-        ) # end get_tp_fp_tn_fn
-        
-        #far
-        far = get_far(fp=fp, tn=tn)
-        #frr
-        frr = get_frr(fn=fn, tp=tp)
-        #print(f"far: {far}, frr: {frr}")
-        if is_equal_error_rate(far=far, frr=frr):
-            print(f"EER has been found! -> far: {far}, frr: {frr} | threshold: {thresh}")
-            return {
-                "tp": tp,
-                "fp": fp,
-                "tn": tn,
-                "fn": fn,
-                "far": far,
-                "frr": frr,
-                "threshold": thresh
-            } # return threshold data dict
+    #for i in range(start, stop, step):
+    thresh = 0.5
+    #print(f'Threshold: {thresh}')
+    (tp, fp, tn, fn), conf_matrix = get_tp_fp_tn_fn(
+        thresh=thresh,
+        gt_labels=val_labels,
+        preds=preds
+    ) # end get_tp_fp_tn_fn
+    
+    #far
+    far = get_far(fp=fp, tn=tn)
+    #frr
+    frr = get_frr(fn=fn, tp=tp)
+    #print(f"far: {far}, frr: {frr}")
+    #if is_equal_error_rate(far=far, frr=frr):
+    #print(f"EER has been found! -> far: {far}, frr: {frr} | threshold: {thresh}")
+    print(f"Threshold Performance -> far: {far}, frr: {frr} | threshold: {thresh}")
+    return {
+        "tp": tp,
+        "fp": fp,
+        "tn": tn,
+        "fn": fn,
+        "far": far,
+        "frr": frr,
+        "threshold": 0.5 # hard-code threshold for now
+    } # return threshold data dict
     # end loop over thresholds to test
     raise Exception("Did not find an equal error rate - was the validation data setup correctly?")
 # threshold tuning
@@ -427,7 +435,7 @@ def get_tp_fp_tn_fn(thresh:float,
     # end loop accumulating predicted labels
 
     # get confusion matrix
-    conf_matrix = confusion_matrix(y_true=gt_labels, y_pred=predicted_labels)
+    conf_matrix = confusion_matrix(y_true=gt_labels, y_pred=predicted_labels, labels=[0, 1])
     tn, fp, fn, tp = conf_matrix.ravel()
     return (int(tp), int(fp), int(tn), int(fn)), conf_matrix
 
