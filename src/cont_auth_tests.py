@@ -53,7 +53,7 @@ from data_tools import *
 
 # Params #
 BASE_DIR = "./MOBIO_extracted/one_sec_intervals/"
-OUT_DIR = "../MOBIO_extracted/test_results/"
+OUT_DIR = "./MOBIO_extracted/test_results/"
 T_INTERVAL = 10
 USE_BC = True
 MODEL_TYPE = Model_Type.ARCFACE.value
@@ -153,11 +153,11 @@ def main():
     while keepGoing:
         sentry += 1
         if os.path.isfile(out_file_path):
-            out_file_name = f"{USE_BC}_{MODEL_TYPE}_{PLATFORM}_{sentry}.json.gz"
+            out_file_name = f"{USE_BC}_{MODEL_TYPE}_{PLATFORM}_{sentry}.json"
             out_file_path = os.path.join(OUT_DIR, out_file_name)
         else:
             keepGoing = False
-    write_to_json_gz(out_file_path, out_data)
+    write_to_json(out_file_path, out_data)
     print("Written to file!")
     toc = time.perf_counter()
     print(f"Time : {toc - tic:0.4f} seconds")
@@ -261,6 +261,7 @@ def run_test(subjects_data:"list[dict]", # list of all user data split into trai
                 "sess_results": []
             } # subject results and metadata
             tp, fp, tn, fn = 0,0,0,0
+# test labels should be parameterized for whether its a positive subject or negative subject!!!
             for session in test_subj_data["test_samples"]:
                 # results from a single session from a single user
                 results = session_test(
@@ -271,27 +272,27 @@ def run_test(subjects_data:"list[dict]", # list of all user data split into trai
                     test_samples=session["features"],
                     test_labels=[0]*len(session["features"])
                 ) # end test for single session
-                tp += results["tp"]
-                fp += results["fp"]
-                tn += results["tn"]
-                fn += results["fn"]
-                s_tp += results["tp"]
-                s_fp += results["fp"]
-                s_tn += results["tn"]
-                s_fn += results["fn"]
-                g_tp += results["tp"]
-                g_fp += results["fp"]
-                g_tn += results["tn"]
-                g_fn += results["fn"]
+                tp += int(results["tp"])
+                fp += int(results["fp"])
+                tn += int(results["tn"])
+                fn += int(results["fn"])
+                s_tp += int(results["tp"])
+                s_fp += int(results["fp"])
+                s_tn += int(results["tn"])
+                s_fn += int(results["fn"])
+                g_tp += int(results["tp"])
+                g_fp += int(results["fp"])
+                g_tn += int(results["tn"])
+                g_fn += int(results["fn"])
 
                 subj_results["sess_results"].append(results)
             # end loop over sessions for testing
 
             # get per-test-subject results
-            subj_results["tp"] = tp
-            subj_results["fp"] = fp
-            subj_results["tn"] = tn
-            subj_results["fn"] = fn
+            subj_results["tp"] = int(tp)
+            subj_results["fp"] = int(fp)
+            subj_results["tn"] = int(tn)
+            subj_results["fn"] = int(fn)
 
             # where to put test results
             if subj_results["subj_id_test"] == subj_results["subj_id_train"]:
@@ -312,10 +313,10 @@ def run_test(subjects_data:"list[dict]", # list of all user data split into trai
             "subj_id": subj_id,
             "pos_subj_results": this_subj_test_results,
             "neg_subjs_restults": all_other_subj_test_results,
-            "tp": s_tp,
-            "fp": s_fp,
-            "tn": s_tn,
-            "fn": s_fn,
+            "tp": int(s_tp),
+            "fp": int(s_fp),
+            "tn": int(s_tn),
+            "fn": int(s_fn),
         } # end pos_subj_results
         pos_subj_results.append(pos_subj_result)
         g_toc = time.perf_counter()
@@ -340,10 +341,10 @@ def run_test(subjects_data:"list[dict]", # list of all user data split into trai
         "window_size": window_size,
         "classifier": classifier_type,
         "use_k_fold": use_k_fold,
-        "tp": g_tp,
-        "fp": g_fp,
-        "tn": g_tn,
-        "fn": g_fn,
+        "tp": int(g_tp),
+        "fp": int(g_fp),
+        "tn": int(g_tn),
+        "fn": int(g_fn),
         "far": get_far(fp=g_fp, tn=g_tn),
         "frr": get_frr(fn=g_fn, tp=g_tp),
         "pos_subj_results": pos_subj_results
@@ -354,17 +355,18 @@ def run_test(subjects_data:"list[dict]", # list of all user data split into trai
 # end run_test
 
 # False Acceptance Rate
-def get_far(fp, tn):
+def get_far(fp, tn)-> float:
     if (fp == 0) and (tn == 0):
         return None
-    return fp / (fp + tn)
+    return float(fp / (fp + tn))
 
 
 # False Rejection Rate
-def get_frr(fn, tp):
+def get_frr(fn, tp)-> float:
     if (fn == 0) and (tp == 0):
         return None
-    return fn / (fn + tp)
+    return float(fn / (fn + tp))
+
 
 # return the threshold between pos and neg samples
 # that reaches an eer rate. returns the f
@@ -425,9 +427,20 @@ def get_tp_fp_tn_fn(thresh:float,
     # end loop accumulating predicted labels
 
     # get confusion matrix
-    conf_matrix = confusion_matrix(y_true=gt_labels, y_pred=predicted_labels, labels=[0, 1])
+    conf_matrix = confusion_matrix(y_true=gt_labels, y_pred=predicted_labels)
     tn, fp, fn, tp = conf_matrix.ravel()
-    return (tp, fp, tn, fn), conf_matrix
+    return (int(tp), int(fp), int(tn), int(fn)), conf_matrix
+
+"""
+- double check labels look correct (gt & prediction)
+
+# (tn + tp) / (tn + fp + fn + tp)
+acc = (conf_mat[0] + conf_mat[3]) / np.sum(conf_mat)
+# fp / (tn + fp)
+far = conf_mat[1] / (conf_mat[0] + conf_mat[1])
+# fn / (fn + tp)
+frr = conf_mat[2] / (conf_mat[2] + conf_mat[3])
+"""
 
 
 # checks if far & frr are equal, with a given precision
@@ -479,11 +492,11 @@ def session_test(classifier:LogisticRegression,
     ) # end get_tp_fp_tn_fn
     # store data for single subject into dict
     results = {
-        "tp": tp,
-        "fp": fp,
-        "tn": tn,
-        "fn": fn,
-        "threshold":threshold,
+        "tp": int(tp),
+        "fp": int(fp),
+        "tn": int(tn),
+        "fn": int(fn),
+        "threshold":int(threshold),
         "conf_matrix": conf_matrix
     } # end results
     return results
@@ -694,15 +707,6 @@ def add_back_path(base_dir:str,  file_names:"list[str]")->"list[str]":
     for file_name in file_names:
         new_list.append(os.path.join(base_dir, file_name))
     return new_list
-
-
-# accumulate results for a single subject
-def aggregate_results_test():
-    pass
-
-# accumulate the results across the entire dataset
-def aggregate_results_final():
-    pass
 
 
 if __name__ == "__main__":
