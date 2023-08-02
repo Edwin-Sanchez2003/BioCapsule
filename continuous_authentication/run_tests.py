@@ -67,9 +67,11 @@ def main():
     # perform tests per user
     print("Performing Tests...")
     tp, fp, tn, fn = 0,0,0,0
+    thresholds_list = []
+    threshold_avg = 0
     for i in range(len(subjects)):
-        print(f"Test with Positive subject as subject {subjects[i].get_subject_id()}")
-        (s_tp, s_fp, s_tn, s_fn) = single_user_test(
+        print(f"Test for subject: {subjects[i].get_subject_id()}")
+        (s_tp, s_fp, s_tn, s_fn, threshold) = single_user_test(
             subjects=subjects,
             subject_index=i,
             training_platform=TRAINING_PLATFORM,
@@ -80,7 +82,12 @@ def main():
         fp += s_fp
         tn += s_tn
         fn += s_fn
+        threshold_avg += threshold
+        thresholds_list.append(threshold)
     # end for loop over subjects
+
+    # get average threshold
+    threshold_avg = threshold_avg/len(subjects)
 
     # get the non-face-count
     total_bad_detections = get_bad_detection_count(subjects=subjects, training_platform=TRAINING_PLATFORM)
@@ -100,7 +107,9 @@ def main():
         "fn": fn,
         "far": get_far(fp=fp, tn=tn),
         "frr": get_frr(fn=fn, tp=tp),
-        "total_bad_detections": total_bad_detections
+        "total_bad_detections": total_bad_detections,
+        "average_threshold": threshold_avg,
+        "thresholds_list": thresholds_list
     } # end out data
 
     # make sure output dir exists
@@ -247,7 +256,7 @@ def single_user_test(
         # end for over each subject's session
     # end for loop over each subject
 
-    return (tp, fp, tn, fn)
+    return (tp, fp, tn, fn, threshold)
 # end single_user_test function
 
 
@@ -310,7 +319,8 @@ def tune_threshold(
     # get predicted probability
     preds = classifier.predict_proba(val_samples)
 
-    precision = 0.01
+    precision = 0.01 # the step size for the threshold
+    target = 1.0 # the target percentage for far
 
     # loop over possible thresholds
     threshold = 0
@@ -330,10 +340,10 @@ def tune_threshold(
         conf_matrix = confusion_matrix(y_true=val_labels, y_pred=pred_labels, labels=[0, 1])
         tn, fp, fn, tp = conf_matrix.ravel()
         far = get_far(fp=fp, tn=tn)
-        frr = get_frr(fn=fn, tp=tp)
 
         # check if the far is greater than
-        if (far*100) >= 0.1:
+        if (far*100) >= target:
+            print(f"Threshold set to: {threshold}")
             return threshold
     # end for over test thesholds
     print("Did not find far... set to default threshold of 0.5!")
