@@ -20,6 +20,16 @@ import numpy as np
 
 import biocapsule as bc
 
+# a list of all locations in mobio
+MOBIO_LOCATIONS = [
+    "but/",
+    "idiap/",
+    "lia/",
+    "uman/",
+    "unis/",
+    "uoulu/"
+] # end MOBIO_LOCATIONS
+
 
 # used for testing
 def main():
@@ -119,16 +129,6 @@ def load_MOBIO_dataset(
                 file_path="./MOBIO_extracted/one_sec_intervals/XX_removed_from_exp_XX/f210/unis_laptop_1_f210_01.json.gz",
                 feature_extraction_model=feature_extraction_model
             ) # end load_single_rs_feature_vector
-    
-    # a list of all locations in mobio
-    MOBIO_LOCATIONS = [
-        #"but/",
-        #"idiap/",
-        #"lia/",
-        #"uman/",
-        #"unis/",
-        "uoulu/"
-    ] # end MOBIO_LOCATIONS
 
     # get all of the files to load
     subjects = []

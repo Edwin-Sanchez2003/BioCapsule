@@ -38,7 +38,7 @@ args = parser.parse_args()
 
 # Params #
 EXTRACTED_MOBIO_DIR = "./MOBIO_extracted/one_sec_intervals/"
-OUT_DIR = "./MOBIO_extracted/test_results_TEST/"
+OUT_DIR = "./MOBIO_extracted/test_results/"
 
 USE_BC = False
 FEATURE_EXTRACTION_MODEL = "arcface" # "facenet"
@@ -104,7 +104,7 @@ def main():
 
     # store out data in a file
     print("Writing results to file...")
-    out_file_name = f"{USE_BC}_{FEATURE_EXTRACTION_MODEL}_{TRAINING_PLATFORM}_0.json.gz"
+    out_file_name = f"{USE_BC}_{FEATURE_EXTRACTION_MODEL}_{TRAINING_PLATFORM}_0.json"
     out_file_path = os.path.join(OUT_DIR, out_file_name)
     keepGoing = True
     sentry = 0
@@ -215,10 +215,10 @@ def single_user_test(
             test_labels = None
             if i == subject_index: 
                 test_samples = session.get_feature_vectors()
-                test_labels = session.get_labels(classification=0)
+                test_labels = session.get_labels(classification=1)
             else:
                 test_samples = session.get_feature_vectors()
-                test_labels = session.get_labels(classification=1)
+                test_labels = session.get_labels(classification=0)
             # end if check for positive or negative subject during testing
 
             # run through classifier, get results

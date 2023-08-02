@@ -153,7 +153,7 @@ def main():
     # store out data in a file
     print("Writing results to file...")
     tic = time.perf_counter()
-    out_file_name = f"{USE_BC}_{MODEL_TYPE}_{PLATFORM}_0.json.gz"
+    out_file_name = f"{USE_BC}_{MODEL_TYPE}_{PLATFORM}_0.json"
     out_file_path = os.path.join(OUT_DIR, out_file_name)
     keepGoing = True
     sentry = 0
