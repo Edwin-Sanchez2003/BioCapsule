@@ -16,6 +16,7 @@ from sklearn.metrics import confusion_matrix
 
 from load_mobio_data import load_MOBIO_dataset, SubjectData
 import tools
+import window
 
 """
 # implement arguments at some point...
@@ -45,8 +46,14 @@ USE_BC = False
 FEATURE_EXTRACTION_MODEL = "facenet" # "facenet"
 TRAINING_PLATFORM = "single" # "multi"
 TIME_INTERVAL = 10
-WINDOW_SIZE = 1 # not implemented yet...
+WINDOW_SIZE = 3
 MULTI_RS = False # not implemented yet...
+
+# the function to use for averaging windows
+AVERAGING_FUNCTION = window.simple_average
+
+# extra name for testing code
+EXTRA_NAME = "window_test"
 
 
 def main():
@@ -118,14 +125,14 @@ def main():
 
     # store out data in a file
     print("Writing results to file...")
-    out_file_name = f"{USE_BC}_{FEATURE_EXTRACTION_MODEL}_{TRAINING_PLATFORM}_0.json"
+    out_file_name = f"{USE_BC}_{FEATURE_EXTRACTION_MODEL}_{TRAINING_PLATFORM}_{EXTRA_NAME}_0.json"
     out_file_path = os.path.join(OUT_DIR, out_file_name)
     keepGoing = True
     sentry = 0
     while keepGoing:
         sentry += 1
         if os.path.isfile(out_file_path):
-            out_file_name = f"{USE_BC}_{FEATURE_EXTRACTION_MODEL}_{TRAINING_PLATFORM}_{sentry}.json"
+            out_file_name = f"{USE_BC}_{FEATURE_EXTRACTION_MODEL}_{TRAINING_PLATFORM}_{EXTRA_NAME}_{sentry}.json"
             out_file_path = os.path.join(OUT_DIR, out_file_name)
         else:
             keepGoing = False
@@ -217,7 +224,8 @@ def single_user_test(
     threshold = tune_threshold(
         classifier=classifier,
         val_samples=val_samples,
-        val_labels=val_labels
+        val_labels=val_labels,
+        window_size=window_size
     ) # end threshold tuning
 
     # loop over every subject again
@@ -245,7 +253,8 @@ def single_user_test(
                 classifier=classifier,
                 test_samples=test_samples,
                 test_labels=test_labels,
-                threshold=threshold
+                threshold=threshold,
+                window_size=window_size
             ) # end get_test_results
 
             # accumulate tp, fp, tn, fn for this subject
@@ -265,16 +274,27 @@ def get_test_results(
         classifier:LogisticRegression,
         test_samples:"list[list[float]]",
         test_labels:"list[int]",
-        threshold:float
+        threshold:float,
+        window_size:int
     )-> "tuple[int, int, int, int]":
     # get predicted probability
     preds = classifier.predict_proba(test_samples)
+    preds = rem_extra_prob(preds=preds)
+
+    # apply window to preds
+    if window_size > 1:
+        preds = window.apply_window_to_probabilities(
+            window_size=window_size,
+                preds=preds,
+                avg_fn=AVERAGING_FUNCTION
+        ) # end apply_window_to_probabilities
+    # end if check for window size
 
     # get classes using the threshold
     pred_labels = []
     for pred in preds:
         # check the classification = 1 probability
-        if pred[1] >= threshold:
+        if pred >= threshold:
             pred_labels.append(1)
         else:
             pred_labels.append(0)
@@ -315,22 +335,34 @@ def get_train_test_split(samples:"list[list[float]]",
 def tune_threshold(
         classifier:LogisticRegression,
         val_samples:"list[list[float]]",
-        val_labels:"list[int]")-> float:
+        val_labels:"list[int]",
+        window_size:int
+        )-> float:
     # get predicted probability
     preds = classifier.predict_proba(val_samples)
+    preds = rem_extra_prob(preds=preds)
 
-    precision = 0.01 # the step size for the threshold
-    target = 1.0 # the target percentage for far
+    # apply window to preds
+    if window_size > 1:
+        preds = window.apply_window_to_probabilities(
+            window_size=window_size,
+                preds=preds,
+                avg_fn=AVERAGING_FUNCTION
+        ) # end apply_window_to_probabilities
+    # end if check for window size
+
+    step_size = 0.01 # the step size for the threshold
+    target = 0.1 # the target percentage for far
 
     # loop over possible thresholds
     threshold = 0
     for i in range(50, 0, -1):
-        threshold = i*precision
+        threshold = i*step_size
         # get classes using the threshold
         pred_labels = []
         for pred in preds:
             # check the classification = 1 probability
-            if pred[1] >= threshold:
+            if pred >= threshold:
                 pred_labels.append(1)
             else:
                 pred_labels.append(0)
@@ -342,6 +374,7 @@ def tune_threshold(
         far = get_far(fp=fp, tn=tn)
 
         # check if the far is greater than
+        # multiply by 100 to get a percentage
         if (far*100) >= target:
             print(f"Threshold set to: {threshold}")
             return threshold
@@ -349,6 +382,35 @@ def tune_threshold(
     print("Did not find far... set to default threshold of 0.5!")
     return 0.5
 # end tune_threshold
+
+
+# takes a list of predicted probabilities and converts
+# them to 1s or 0s based on a threshold value
+# assumes preds are the probability for the "yes" authentication
+# probabilities
+def binarize_predictions(
+        preds:"list[float]",
+        threshold:int
+    )-> "list[int]":
+    
+    pred_labels = [0]*len(preds)
+    for i, pred in enumerate(preds):
+        if pred >= threshold:
+            pred_labels[i] = 1
+        else:
+            pred_labels[i] = 0
+    # end for loop over predictions
+    return pred_labels
+# end binarize_predictions
+
+
+# remove no authentication probability
+# returns a list of single probabilities of "yes" authentication
+def rem_extra_prob(preds:"list[list[float]]")-> "list[float]":
+    slim_pred = [0]*(len(preds))
+    for i, pred in enumerate(preds):
+        slim_pred[i] = pred[1]
+    return slim_pred
 
 
 # takes a list of a list of samples, a list of list of labels,
