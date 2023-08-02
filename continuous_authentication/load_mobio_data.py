@@ -22,11 +22,11 @@ import biocapsule as bc
 
 # a list of all locations in mobio
 MOBIO_LOCATIONS = [
-    "but/",
-    "idiap/",
-    "lia/",
-    "uman/",
-    "unis/",
+    #"but/",
+    #"idiap/",
+    #"lia/",
+    #"uman/",
+    #"unis/",
     "uoulu/"
 ] # end MOBIO_LOCATIONS
 
@@ -179,6 +179,8 @@ class SessionData(object):
         self.__non_face_indices = None
         self.__load_single_subject_session_data(session_file_path=self.__session_file_path)
         assert self.__feature_vectors != None
+
+        print(f"Number of Non-Faces: {self.__non_face_indices}")
         
         # if using biocapsule, apply transformations and store back
         if self.__use_bc:
@@ -191,6 +193,14 @@ class SessionData(object):
     # function for retrieving feature vectors for running a test
     def get_feature_vectors(self)-> "list[list[float]]":
         return self.__feature_vectors
+    
+    # get feature vectors for training
+    def get_feat_vect_train():
+        pass
+
+    # get labels train
+    def get_train_labels():
+        pass
     
     # function for retrieving the labels. specifically made to avoid
     # issues with non face indices

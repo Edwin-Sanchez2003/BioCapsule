@@ -42,7 +42,7 @@ EXTRACTED_MOBIO_DIR = "./MOBIO_extracted/one_sec_intervals/"
 OUT_DIR = "./MOBIO_extracted/test_results/"
 
 USE_BC = False
-FEATURE_EXTRACTION_MODEL = "arcface" # "facenet"
+FEATURE_EXTRACTION_MODEL = "facenet" # "facenet"
 TRAINING_PLATFORM = "single" # "multi"
 TIME_INTERVAL = 10
 WINDOW_SIZE = 1 # not implemented yet...
@@ -304,7 +304,38 @@ def tune_threshold(
         val_samples:"list[list[float]]",
         val_labels:"list[int]")-> float:
     print("Constant Threshold right now...")
+    # get predicted probability
+    preds = classifier.predict_proba(val_samples)
+
+    precision = 0.01
+
+    # loop over possible thresholds
+    threshold = 0
+    for i in range(50, 0, -1):
+        threshold = i*precision
+        # get classes using the threshold
+        pred_labels = []
+        for pred in preds:
+            # check the classification = 1 probability
+            if pred[1] >= threshold:
+                pred_labels.append(1)
+            else:
+                pred_labels.append(0)
+        # end for over predicted probabilities
+
+        # get metrics based on thresh
+        conf_matrix = confusion_matrix(y_true=val_labels, y_pred=pred_labels, labels=[0, 1])
+        tn, fp, fn, tp = conf_matrix.ravel()
+        far = get_far(fp=fp, tn=tn)
+        frr = get_frr(fn=fn, tp=tp)
+
+        # check if the far is greater than
+        if (far*100) >= 0.1:
+            return threshold
+    # end for over test thesholds
+    print("Did not find far... set to default threshold of 0.5!")
     return 0.5
+# end tune_threshold
 
 
 # takes a list of a list of samples, a list of list of labels,
