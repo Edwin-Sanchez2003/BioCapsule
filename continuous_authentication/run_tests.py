@@ -83,7 +83,7 @@ def main():
     # end for loop over subjects
 
     # get the non-face-count
-    total_non_faces = get_bad_detection_count(subjects=subjects, training_platform=TRAINING_PLATFORM)
+    total_bad_detections = get_bad_detection_count(subjects=subjects, training_platform=TRAINING_PLATFORM)
 
     # collect information from testing
     # store the probability classifications so we can extract more data later
@@ -100,7 +100,7 @@ def main():
         "fn": fn,
         "far": get_far(fp=fp, tn=tn),
         "frr": get_frr(fn=fn, tp=tp),
-        "total_non_faces": total_non_faces
+        "total_bad_detections": total_bad_detections
     } # end out data
 
     # make sure output dir exists
