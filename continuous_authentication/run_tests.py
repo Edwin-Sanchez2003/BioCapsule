@@ -15,6 +15,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import confusion_matrix
 
 from load_mobio_data import load_MOBIO_dataset, SubjectData
+from  load_rs_features import yield_reference_subject
 import tools
 import window
 
@@ -40,6 +41,7 @@ args = parser.parse_args()
 
 # Params #
 EXTRACTED_MOBIO_DIR = "./MOBIO_extracted/one_sec_intervals/"
+REFERENCE_SUBJ_DATA_DIR = "./MOBIO_extracted/rs_features.json"
 OUT_DIR = "./MOBIO_extracted/test_results/"
 
 USE_BC = False
@@ -68,7 +70,8 @@ def main():
         time_interval=TIME_INTERVAL,
         feature_extraction_model=FEATURE_EXTRACTION_MODEL,
         use_bc=USE_BC,
-        multi_rs=MULTI_RS
+        multi_rs=MULTI_RS,
+        ref_subj_data_dir=REFERENCE_SUBJ_DATA_DIR
     ) # end load_MOBIO_dataset function call
 
     # perform tests per user
@@ -146,7 +149,7 @@ def single_user_test(
         subjects:"list[SubjectData]",
         subject_index:int,
         training_platform:str,
-        window_size:int=1,
+        window_size:int=1
     )-> "tuple[int, int, int, int]":
     subject = subjects[subject_index]
 

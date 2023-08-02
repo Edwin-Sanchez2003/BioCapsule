@@ -20,6 +20,8 @@ import numpy as np
 
 import biocapsule as bc
 
+from load_rs_features import yield_reference_subject
+
 # a list of all locations in mobio
 MOBIO_LOCATIONS = [
     "but/",
@@ -99,7 +101,8 @@ def load_MOBIO_dataset(
         time_interval:int,
         feature_extraction_model:str,
         use_bc:bool,
-        multi_rs:bool=True
+        multi_rs:bool,
+        ref_subj_data_dir:str=None
     )-> "list[SubjectData]":
 
     # check inputs #
@@ -120,23 +123,35 @@ def load_MOBIO_dataset(
         raise Exception("use_bc must be either TRUE or FALSE. If TRUE, you MUST also specify single or mutliple reference subjects") 
 
     # multi_rs check
+    rs_file_name = None
     rs_feature_vector = None
     if use_bc:
-        if multi_rs:
-            raise Exception("have not coded in for multi_rs yet...")
-        else:
+        if multi_rs == False:
+            rs_file_name = "f210"
             rs_feature_vector = load_single_rs_feature_vector(
                 file_path="./MOBIO_extracted/one_sec_intervals/XX_removed_from_exp_XX/f210/unis_laptop_1_f210_01.json.gz",
                 feature_extraction_model=feature_extraction_model
             ) # end load_single_rs_feature_vector
+        # end check if use multiple reference subjects
+    # end check if use_bc
 
     # get all of the files to load
+    rs_gen = yield_reference_subject(
+        file_path=ref_subj_data_dir,
+        feature_extraction_model=feature_extraction_model
+    ) # end generator init
+
     subjects = []
     for location in MOBIO_LOCATIONS:
         # get all subjects at this location
         location_path = os.path.join(extracted_MOBIO_dir, location)
         subject_dirs = os.listdir(location_path)
         for subject_folder_name in subject_dirs:
+            # check if we should use the same reference subject or not
+            if multi_rs:
+                rs_data = next(rs_gen)
+                rs_file_name = rs_data[0]
+                rs_feature_vector = copy.deepcopy(rs_data[1])
             subject_path = os.path.join(location_path, subject_folder_name)
             subjects.append(
                 SubjectData(
@@ -144,7 +159,8 @@ def load_MOBIO_dataset(
                     time_interval=time_interval,
                     feature_extraction_model=feature_extraction_model,
                     use_bc=use_bc,
-                    rs_feature_vector=rs_feature_vector
+                    rs_feature_vector=rs_feature_vector,
+                    rs_file_name=rs_file_name
                 )# end subject data construction
             ) # end append to subjects list
         # end for loop over all subjects at this location
@@ -291,7 +307,8 @@ class SubjectData(object):
                  time_interval:int=10,
                  feature_extraction_model:str="arcface",
                  use_bc:bool=False,
-                 rs_feature_vector:"list[float]"=None
+                 rs_feature_vector:"list[float]"=None,
+                 rs_file_name:str=None
                  ) -> None:
         self.__subject_dir = subject_dir
         self.__subject_id = os.path.basename(subject_dir)
@@ -302,6 +319,7 @@ class SubjectData(object):
         self.__feature_extraction_model = feature_extraction_model
         self.__use_bc = use_bc
         self.__rs_feature_vector = rs_feature_vector
+        self.__rs_file_name = rs_file_name
 
         # load all session data for this subject
         print(f"Loading data for subject '{self.__subject_id}'...")
