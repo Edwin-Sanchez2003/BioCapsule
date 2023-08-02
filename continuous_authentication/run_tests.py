@@ -49,7 +49,7 @@ MULTI_RS = False # not implemented yet...
 
 
 def main():
-    # check TRAININ_PLATFORM param. the other params are checked later
+    # check TRAINING_PLATFORM param. the other params are checked later
     if TRAINING_PLATFORM != "single":
         if TRAINING_PLATFORM != "multi":
             raise Exception("Training Platform is not valid. Must be either 'single' or 'multi'")
@@ -165,7 +165,7 @@ def single_user_test(
             neg_train_samples.extend(copy.deepcopy(test_subject.get_mobile_session_one().get_feature_vectors()))
             neg_train_labels.extend(test_subject.get_mobile_session_one().get_labels(classification=0))
         else: # multi/cross platform (train with laptop data)
-            neg_train_samples.extend(copy.deepcopy(subject.get_laptop_session().get_feature_vectors()))
+            neg_train_samples.extend(copy.deepcopy(test_subject.get_laptop_session().get_feature_vectors()))
             neg_train_labels.extend(test_subject.get_laptop_session().get_labels(classification=0))
         # end get neg train data
     # end for loop over other subjects to get negative train & validation data
