@@ -13,55 +13,150 @@
     - counting if frame is none or multiple faces
 """
 
+import os
 import tools
 import copy
+import numpy as np
 
 import biocapsule as bc
 
 
-# Params #
-
-# the type of model to use for the feature extraction
-# features have already been extracted, so the options are
-# 'facenet' or 'arcface'
-FEATURE_EXTRACTION_MODEL = "facenet" # "arcface"
-# the time interval from which to extract frames Must be
-# at least 1 second, and an integer value.
-TIME_INTERVAL = 10
-# the platform from which to perform training.
-# the options are to train and validate with the
-# 'laptop' session or the 'mobile' session
-TRAINING_PLATFORM = "multi" # single
-
-
-# loads the data from the mobio dataset into an easy to
-# use format for testing
-def load_MOBIO_data(mobio_extr_data_dir:str)->dict:
-    pass
+# used for testing
+def main():
+    #sessionDataTest()
+    #subjectDataTest()
+    subjects = load_MOBIO_dataset(
+        extracted_MOBIO_dir="./MOBIO_extracted/one_sec_intervals/",
+        time_interval=10,
+        feature_extraction_model="arcface",
+        use_bc=False,
+        multi_rs=False
+    ) # end load_MOBIO_dataset
+    print(len(subjects))
+    print(subjects[0].get_laptop_session().get_feature_vectors()[0])
+# end main function tests
 
 
-# loads the data for a single subject in the MOBIO dataset.
-# loads the individual data from each session and then packages
-# into train, validation, and test splits for all needed cases
-def get_single_subject_data(mobio_data_dir:str,
-        subject_location:str,
-        subject_id:str
-        )-> dict:
-    """
-    Inputs
-    -------
-    mobio_data_dir : str
-        The directory containing data extracted from the MOBIO dataset.
-        Assumes data has been extracted using 'extract_MOBIO_data.py'
+def sessionDataTest():
+    # test SessionData Class
+    session_data = SessionData(
+        session_file_path="./MOBIO_extracted/one_sec_intervals/but/f401/but_laptop_1_f401_01.json.gz",
+        time_interval=10,
+        feature_extraction_model="arcface",
+        use_bc=True,
+        rs_feature_vector=np.random.rand(512).tolist()
+    ) # end init SessionData
+    print(session_data.get_feature_vectors())
+    print(len(session_data.get_feature_vectors()))
+    print(session_data.get_labels(0))
+    print(session_data.get_labels(1))
+    print(len(session_data.get_labels(0)))
+# end sessionDataTest
 
-    subject_location : str
-        The location in which the subject participated in the data
-        collections process for MOBIO.
+def subjectDataTest():
+    # test SubjectData Class
+    subject_data = SubjectData(
+        subject_dir="./MOBIO_extracted/one_sec_intervals/but/f401/",
+        time_interval=10,
+        feature_extraction_model="arcface",
+        use_bc=True,
+        rs_feature_vector=np.random.rand(512).tolist()
+    ) # end init SessionData
 
-    subject_id : str
-        The unique id of the subject, designated by the MOBIO dataset.
-    """
-    pass
+    print(subject_data.get_laptop_session().get_feature_vectors())
+    print(len(subject_data.get_laptop_session().get_feature_vectors()))
+    print(subject_data.get_laptop_session().get_labels(0))
+    print(subject_data.get_laptop_session().get_labels(1))
+    print(len(subject_data.get_laptop_session().get_labels(0)))
+
+    subject_data = SubjectData(
+        subject_dir="./MOBIO_extracted/one_sec_intervals/but/f401/",
+        time_interval=10,
+        feature_extraction_model="facenet",
+        use_bc=False,
+        rs_feature_vector=None
+    ) # end init SessionData
+
+    print(subject_data.get_laptop_session() != None)
+    print(subject_data.get_mobile_session_one() != None)
+    print(len(subject_data.get_mobile_sessions()))
+# end subjectDataTest
+
+
+# loads the entire MOBIO dataset given input parameters
+def load_MOBIO_dataset(
+        extracted_MOBIO_dir:str,
+        time_interval:int,
+        feature_extraction_model:str,
+        use_bc:bool,
+        multi_rs:bool=True
+    )-> "list[SubjectData]":
+
+    # check inputs #
+
+    # time_interval check
+    if type(time_interval) != int:
+        raise Exception("time_invterval MUST be a positive integer")
+    if time_interval <= 0:
+        raise Exception("time_interval MUST be a positive integer")
+    
+    # feature_extraction_model check
+    if feature_extraction_model != "arcface":
+        if feature_extraction_model != "facenet":
+            raise Exception("feature_extraction_model MUST be either 'facenet' or 'arcface'")
+    
+    # use_bc check
+    if type(use_bc) != bool:
+        raise Exception("use_bc must be either TRUE or FALSE. If TRUE, you MUST also specify single or mutliple reference subjects") 
+
+    # multi_rs check
+    rs_feature_vector = None
+    if use_bc:
+        if multi_rs:
+            raise Exception("have not coded in for multi_rs yet...")
+        else:
+            rs_feature_vector = load_single_rs_feature_vector(
+                file_path="./MOBIO_extracted/one_sec_intervals/XX_removed_from_exp_XX/f210/unis_laptop_1_f210_01.json.gz",
+                feature_extraction_model=feature_extraction_model
+            ) # end load_single_rs_feature_vector
+    
+    # a list of all locations in mobio
+    MOBIO_LOCATIONS = [
+        #"but/",
+        #"idiap/",
+        #"lia/",
+        #"uman/",
+        #"unis/",
+        "uoulu/"
+    ] # end MOBIO_LOCATIONS
+
+    # get all of the files to load
+    subjects = []
+    for location in MOBIO_LOCATIONS:
+        # get all subjects at this location
+        location_path = os.path.join(extracted_MOBIO_dir, location)
+        subject_dirs = os.listdir(location_path)
+        for subject_folder_name in subject_dirs:
+            subject_path = os.path.join(location_path, subject_folder_name)
+            subjects.append(
+                SubjectData(
+                    subject_dir=subject_path,
+                    time_interval=time_interval,
+                    feature_extraction_model=feature_extraction_model,
+                    use_bc=use_bc,
+                    rs_feature_vector=rs_feature_vector
+                )# end subject data construction
+            ) # end append to subjects list
+        # end for loop over all subjects at this location
+    # end loop over all locations in MOBIO_LOCATIONS
+    return subjects
+# end load_MOBIO_dataset function
+
+
+# loads a single rs feature vector
+def load_single_rs_feature_vector(file_path:str, feature_extraction_model:str)-> "list[float]":
+    session_data = tools.load_json_gz_file(file_path=file_path)
+    return session_data["frame_data"][0]["feature_vectors"][feature_extraction_model]
 
 
 # class to neatly store session information for a subject
@@ -82,13 +177,36 @@ class SessionData(object):
         # to the feature vectors with non-faces
         self.__feature_vectors = None
         self.__non_face_indices = None
-        self.__load_single_subject_session_data(session_file_path=session_file_path)
+        self.__load_single_subject_session_data(session_file_path=self.__session_file_path)
+        assert self.__feature_vectors != None
         
         # if using biocapsule, apply transformations and store back
-        if use_bc:
+        if self.__use_bc:
             assert rs_feature_vector != None
             self.__make_biocapsules()
+        # end if
+    # end __init__ for SessionData
 
+    
+    # function for retrieving feature vectors for running a test
+    def get_feature_vectors(self)-> "list[list[float]]":
+        return self.__feature_vectors
+    
+    # function for retrieving the labels. specifically made to avoid
+    # issues with non face indices
+    def get_labels(self, classification:int)-> "list[int]":
+        # generate the labels for this session, based off of
+        # self.__non_faces_indices and the given classification
+        labels = [classification]*len(self.__feature_vectors)
+
+        # default non_face_indices to 0 classification (no face or multi face)
+        if classification != 0: # only do this if the class is not 0 (avoid wasting time)
+            for bad_index in self.__non_face_indices:
+                labels[bad_index] = 0
+        # Issue: since we extracted one of the faces for multi face scenario,
+        # this may confuse the classifier if we picked the actual user's face
+        return labels
+        
 
     # loads the data from a single session of a subject,
     # extracting the most important information to be accumulated
@@ -124,10 +242,10 @@ class SessionData(object):
         # of the loaded list
         num_features = len(session_data["frame_data"])
         self.__non_face_indices = []
-        for t_index in range(0, num_features, self._time_interval):
+        for t_index in range(0, num_features, self.__time_interval):
             # add feature to feature vector
             self.__feature_vectors.append(
-                session_data["frame_data"][t_index]["feature_vectors"][FEATURE_EXTRACTION_MODEL]
+                session_data["frame_data"][t_index]["feature_vectors"][self.__feature_extraction_model]
             ) # end append feature vector to list of feature vectors
 
             # check if there's more than one face or no faces
@@ -147,10 +265,122 @@ class SessionData(object):
     def __make_biocapsules(self):
         # create biocapsule object
         bc_gen = bc.BioCapsuleGenerator()
+
+        # loop over feature vectors, creating a biocapsule using the
+        # given reference subject and each feature vector in the session
+        bc_vectors = []
+        for feature_vector in self.__feature_vectors:
+            bc_vectors.append(
+                bc_gen.biocapsule(
+                    user_feature=np.array(feature_vector), 
+                    rs_feature=np.array(self.__rs_feature_vector)
+                ).tolist() # end biocapsule generation function
+            ) # end append to bc_vectors
         
-        pass
+        # set feature vectors to be biocapsule list
+        self.__feature_vectors = copy.deepcopy(bc_vectors)
+    # end __make_biocapsules
+# end SessionData class
 
 
-# generates labels for a single subject
-def gen_labels_for_subject()-> "list[int]":
-    pass
+# class to neatly store data for a single subject
+# subdivides data into train & test sections as needed
+class SubjectData(object):
+    def __init__(self, 
+                 subject_dir:str,
+                 time_interval:int=10,
+                 feature_extraction_model:str="arcface",
+                 use_bc:bool=False,
+                 rs_feature_vector:"list[float]"=None
+                 ) -> None:
+        self.__subject_dir = subject_dir
+        self.__subject_id = os.path.basename(subject_dir)
+        self.__laptop_session_one = None
+        self.__mobile_session_one = None
+        self.__mobile_sessions = None
+        self.__time_interval = time_interval
+        self.__feature_extraction_model = feature_extraction_model
+        self.__use_bc = use_bc
+        self.__rs_feature_vector = rs_feature_vector
+
+        # load all session data for this subject
+        print(f"Loading data for subject '{self.__subject_id}'...")
+        self.__load_sessions()
+        assert self.__laptop_session_one != None
+        assert self.__mobile_session_one != None
+        assert self.__mobile_sessions != None
+        print("Subject Data Loaded!")
+    # end __init__ for SubjectData
+
+
+    # getters
+    def get_laptop_session(self)-> SessionData:
+        return self.__laptop_session_one
+    
+    def get_mobile_session_one(self)-> SessionData:
+        return self.__mobile_session_one
+    
+    def get_mobile_sessions(self)-> "list[SessionData]":
+        return self.__mobile_sessions
+
+
+    # load all session data. divide into train, validation, and test sets
+    # based on multi or single platform
+    def __load_sessions(self):
+        # get all of the session files
+        session_file_paths = []
+        for file_name in os.listdir(self.__subject_dir):
+            session_file_paths.append(os.path.join(self.__subject_dir, file_name))
+        # end for
+
+        # sort file paths. we can use this order to help us
+        session_file_paths.sort()
+
+        self.__mobile_sessions = []
+        # create SessionData objects. use to get feature vectors
+        for i, session_file_path in enumerate(session_file_paths):
+            if i == 0: # index of the laptop session (only true if sorted)
+                self.__laptop_session_one = SessionData(
+                    session_file_path=session_file_path,
+                    time_interval=self.__time_interval,
+                    feature_extraction_model=self.__feature_extraction_model,
+                    use_bc=self.__use_bc,
+                    rs_feature_vector=self.__rs_feature_vector
+                ) # end SessionData construction
+            elif i == 1: # index of the first mobile session (only true if sorted)
+                self.__mobile_session_one = SessionData(
+                    session_file_path=session_file_path,
+                    time_interval=self.__time_interval,
+                    feature_extraction_model=self.__feature_extraction_model,
+                    use_bc=self.__use_bc,
+                    rs_feature_vector=self.__rs_feature_vector
+                ) # end SessionData construction
+            else: # all other mobile sessions
+                self.__mobile_sessions.append(
+                    SessionData(
+                        session_file_path=session_file_path,
+                        time_interval=self.__time_interval,
+                        feature_extraction_model=self.__feature_extraction_model,
+                        use_bc=self.__use_bc,
+                        rs_feature_vector=self.__rs_feature_vector
+                    ) # end SessionData contstruction
+                ) # end append to self.__mobile_sessions
+            # end if check sorting SessionData
+        # end for loop over session_file_paths
+    # end __load_sessions function
+
+
+    # parse file name to get the file with the given subcomponent
+    def __check_for_subcomponent(self, f_name:str, word_to_find:str)-> bool:
+        f_name = os.path.basename(f_name)
+        for start in range(0, len(f_name)-(len(word_to_find)-1)):
+            name_slice = f_name[start:start+len(word_to_find)]
+            if name_slice == word_to_find:
+                return True
+        return False
+    # end __check_for_subcomponent
+# end SubjectData class
+
+
+if __name__ == "__main__":
+    main()
