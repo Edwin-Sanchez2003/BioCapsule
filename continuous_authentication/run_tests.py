@@ -9,6 +9,7 @@
 import os
 import random
 import copy
+import time
 
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import confusion_matrix
@@ -368,4 +369,7 @@ def get_frr(fn, tp)-> float:
 
 
 if __name__ == "__main__":
+    tic = time.perf_counter()
     main()
+    toc = time.perf_counter()
+    print(f"Time to run experiment: {toc-tic:04f} seconds")
