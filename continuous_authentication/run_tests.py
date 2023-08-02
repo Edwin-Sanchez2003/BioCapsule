@@ -81,6 +81,9 @@ def main():
         fn += s_fn
     # end for loop over subjects
 
+    # get the non-face-count
+    total_non_faces = get_non_face_count(subjects=subjects, training_platform=TRAINING_PLATFORM)
+
     # collect information from testing
     # store the probability classifications so we can extract more data later
     out_data = {
@@ -95,7 +98,8 @@ def main():
         "tn": tn,
         "fn": fn,
         "far": get_far(fp=fp, tn=tn),
-        "frr": get_frr(fn=fn, tp=tp)
+        "frr": get_frr(fn=fn, tp=tp),
+        "total_non_faces": total_non_faces
     } # end out data
 
     # make sure output dir exists
@@ -326,6 +330,27 @@ def combine_samples_and_labels(
 
     return (out_samples, out_labels)
 # end combine_samples_and_labels
+
+
+# gets the number of non-face samples during testing
+def get_non_face_count(
+        subjects:"list[SubjectData]",
+        training_platform:str
+    )-> int:
+    total_non_faces = 0
+    for subject in subjects:
+        # get non faces for the selected training set
+        if training_platform == "single": # get mobile train non-faces
+            total_non_faces += subject.get_laptop_session().get_non_face_count()
+        else: # get laptop train non-faces
+            total_non_faces += subject.get_mobile_session_one().get_non_face_count()
+        
+        # get non faces for the rest of the subject's sessions
+        for session in subject.get_mobile_sessions():
+            total_non_faces += session.get_non_face_count()
+    # end for loop over subjects
+    return total_non_faces
+# end get_non_face_count
 
 
 # False Acceptance Rate
