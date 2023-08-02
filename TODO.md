@@ -7,7 +7,7 @@ BioCapsule
 * Run FaceNet (use_bc=False, model_type="facenet", platform="single") testing, but with threshold set based on what gets us to a FAR of 0.1% and 1.0%. Check if Facenet performance is better.
     * it got worse...
 * Get Results for different window sizes.
-    * pick a **few important rows???** & mess with the window size & averaging method.
+    * lock in a **few important starting params** & mess with the window size & averaging method.
     * main focus: bc/no bc, so lock all other variables in place (arface & single platform)
 * Re-Run the experiment with all using a single reference subject and all using a different reference subject, to verify bc performance
 * Store probabilities from each sesssion's test to use for later

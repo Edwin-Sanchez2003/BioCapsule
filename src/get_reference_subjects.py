@@ -11,13 +11,13 @@
 import os
 import random
 import copy
+import json
 
 from PIL import Image
 import numpy as np
 
-from ..src import face
+import face
 
-import tools
 
 def main():
     generate_rs_features(images_dir="./images/lfw/")
@@ -88,9 +88,28 @@ def generate_rs_features(images_dir:str, num_faces_to_select:int=150, selection_
         img_dict["features"]["arcface"] = copy.deepcopy(features)
 
     # store into json file
-    tools.write_to_json(file_path="./rs_features.json", data=data)
+    write_to_json(file_path="./rs_features.json", data=data)
 # end generate_rs_features
     
+
+# writes a dictionary to a json file
+def write_to_json(file_path:str, data:dict)-> None:
+    with open(file_path, "w") as file:
+        file.write(json.dumps(data, cls=DataEncoder))
+
+
+# json encoder class to deal with numpy
+# numbers that aren't json serializeable
+class DataEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, np.integer):
+            return int(obj)
+        if isinstance(obj, np.floating):
+            return float(obj)
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        return super(DataEncoder, self).default(obj)
+
 
 
 if __name__ == "__main__":
