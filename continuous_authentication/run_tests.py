@@ -15,7 +15,6 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import confusion_matrix
 
 from load_mobio_data import load_MOBIO_dataset, SubjectData
-from  load_rs_features import yield_reference_subject
 import tools
 import window
 
@@ -48,7 +47,7 @@ USE_BC = False
 FEATURE_EXTRACTION_MODEL = "facenet" # "facenet"
 TRAINING_PLATFORM = "single" # "multi"
 TIME_INTERVAL = 10
-WINDOW_SIZE = 3
+WINDOW_SIZE = 1
 MULTI_RS = False # not implemented yet...
 
 # the function to use for averaging windows
