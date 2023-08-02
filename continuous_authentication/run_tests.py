@@ -223,12 +223,12 @@ def single_user_test(
                 test_samples = session.get_feature_vectors()
                 test_labels = session.get_labels(classification=1)
                 # account for bad samples
-                fn += get_bad_detection_count()
+                fn += session.get_bad_detection_count()
             else: # different subject
                 test_samples = session.get_feature_vectors()
                 test_labels = session.get_labels(classification=0)
                 # account for bad samples
-                tn += get_bad_detection_count()
+                tn += session.get_bad_detection_count()
             # end if check for positive or negative subject during testing
 
             # run through classifier, get results
@@ -307,7 +307,6 @@ def tune_threshold(
         classifier:LogisticRegression,
         val_samples:"list[list[float]]",
         val_labels:"list[int]")-> float:
-    print("Constant Threshold right now...")
     # get predicted probability
     preds = classifier.predict_proba(val_samples)
 
