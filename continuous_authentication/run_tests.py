@@ -83,7 +83,7 @@ def main():
     # end for loop over subjects
 
     # get the non-face-count
-    total_non_faces = get_non_face_count(subjects=subjects, training_platform=TRAINING_PLATFORM)
+    total_non_faces = get_bad_detection_count(subjects=subjects, training_platform=TRAINING_PLATFORM)
 
     # collect information from testing
     # store the probability classifications so we can extract more data later
@@ -219,12 +219,16 @@ def single_user_test(
             # this is the same subject, set classifcation accordingly
             test_samples = None
             test_labels = None
-            if i == subject_index: 
+            if i == subject_index: # same subject
                 test_samples = session.get_feature_vectors()
                 test_labels = session.get_labels(classification=1)
-            else:
+                # account for bad samples
+                fn += get_bad_detection_count()
+            else: # different subject
                 test_samples = session.get_feature_vectors()
                 test_labels = session.get_labels(classification=0)
+                # account for bad samples
+                tn += get_bad_detection_count()
             # end if check for positive or negative subject during testing
 
             # run through classifier, get results
@@ -365,7 +369,7 @@ def combine_samples_and_labels(
 
 
 # gets the number of non-face samples during testing
-def get_non_face_count(
+def get_bad_detection_count(
         subjects:"list[SubjectData]",
         training_platform:str
     )-> int:
@@ -373,13 +377,13 @@ def get_non_face_count(
     for subject in subjects:
         # get non faces for the selected training set
         if training_platform == "single": # get mobile train non-faces
-            total_non_faces += subject.get_laptop_session().get_non_face_count()
+            total_non_faces += subject.get_laptop_session().get_bad_detection_count()
         else: # get laptop train non-faces
-            total_non_faces += subject.get_mobile_session_one().get_non_face_count()
+            total_non_faces += subject.get_mobile_session_one().get_bad_detection_count()
         
         # get non faces for the rest of the subject's sessions
         for session in subject.get_mobile_sessions():
-            total_non_faces += session.get_non_face_count()
+            total_non_faces += session.get_bad_detection_count()
     # end for loop over subjects
     return total_non_faces
 # end get_non_face_count

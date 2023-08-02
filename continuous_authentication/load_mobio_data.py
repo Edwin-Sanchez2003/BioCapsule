@@ -175,13 +175,11 @@ class SessionData(object):
 
         # load the feature vectors and the indices corresponding
         # to the feature vectors with non-faces
-        self.__feature_vectors = None
-        self.__non_face_indices = None
+        self.__feature_vectors = []
+        self.__bad_detections = []
         self.__load_single_subject_session_data(session_file_path=self.__session_file_path)
         assert self.__feature_vectors != None
 
-        print(f"Number of Non-Faces: {self.__non_face_indices}")
-        
         # if using biocapsule, apply transformations and store back
         if self.__use_bc:
             assert rs_feature_vector != None
@@ -189,39 +187,24 @@ class SessionData(object):
         # end if
     # end __init__ for SessionData
 
-    
+
     # function for retrieving feature vectors for running a test
     def get_feature_vectors(self)-> "list[list[float]]":
         return self.__feature_vectors
     
-    # get feature vectors for training
-    def get_feat_vect_train():
-        pass
 
-    # get labels train
-    def get_train_labels():
-        pass
-    
     # function for retrieving the labels. specifically made to avoid
-    # issues with non face indices
+    # issues with bad detections
     def get_labels(self, classification:int)-> "list[int]":
         # generate the labels for this session, based off of
-        # self.__non_faces_indices and the given classification
+        # given classification * the length of the feature vectors
         labels = [classification]*len(self.__feature_vectors)
-
-        # default non_face_indices to 0 classification (no face or multi face)
-        if classification != 0: # only do this if the class is not 0 (avoid wasting time)
-            for bad_index in self.__non_face_indices:
-                labels[bad_index] = 0
-        # Issue: since we extracted one of the faces for multi face scenario,
-        # this may confuse the classifier if we picked the actual user's face
         return labels
         
+
     # get the number of non_face_vectors
-    def get_non_face_count(self)-> int:
-        if self.__non_face_indices == None:
-            return 0
-        return len(self.__non_face_indices)
+    def get_bad_detection_count(self)-> int:
+        return len(self.__bad_detections)
 
 
     # loads the data from a single session of a subject,
@@ -251,29 +234,30 @@ class SessionData(object):
 
         # list to store the features of this subject
         self.__feature_vectors = []
+        self.__bad_detections = []
 
         # loops over each frame dict in the extracted data file
         # loop at the given time interval to get frames at
         # TIME_INTERVAL seconds, which correspond to the order
         # of the loaded list
         num_features = len(session_data["frame_data"])
-        self.__non_face_indices = []
         for t_index in range(0, num_features, self.__time_interval):
-            # add feature to feature vector
-            self.__feature_vectors.append(
-                session_data["frame_data"][t_index]["feature_vectors"][self.__feature_extraction_model]
-            ) # end append feature vector to list of feature vectors
-
             # check if there's more than one face or no faces
             # if so, add to non_face_indices for this session
             if int(session_data["frame_data"][t_index]["num_faces_detected"]) != 1:
-                # append the index for this feature vector.
-                # this will be the current length of the feature vector
-                # list minus one, which will correspond to the current last item
-                # in the list
-                self.__non_face_indices.append(len(self.__feature_vectors)-1)
+                self.__bad_detections.append(
+                    session_data["frame_data"][t_index]["feature_vectors"][self.__feature_extraction_model]
+                ) # end append to non face feature vectors
+            else:
+                # add feature to feature vector
+                self.__feature_vectors.append(
+                    session_data["frame_data"][t_index]["feature_vectors"][self.__feature_extraction_model]
+                ) # end append feature vector to list of feature vectors
             # end if check for non_faces_indices
         # end for loop over feature vectors
+        print(f"Num Good Detections found: {len(self.__feature_vectors)}")
+        print(f" Num Bad Detections found: {len(self.__bad_detections)}")
+        
     # end self.__load_single_subject_session_data
 
 
