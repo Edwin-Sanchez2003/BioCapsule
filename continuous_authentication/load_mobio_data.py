@@ -10,7 +10,7 @@
 """
     Important info:
     - distinguishing subjects
-    - counting if frame is none or multiple faces
+    - counting if frame is none or multiple faces (abstracted into SessionData class)
 """
 
 import os
@@ -207,6 +207,12 @@ class SessionData(object):
         # this may confuse the classifier if we picked the actual user's face
         return labels
         
+    # get the number of non_face_vectors
+    def get_non_face_count(self)-> int:
+        if self.__non_face_indices == None:
+            return 0
+        return len(self.__non_face_indices)
+
 
     # loads the data from a single session of a subject,
     # extracting the most important information to be accumulated
@@ -322,6 +328,9 @@ class SubjectData(object):
     
     def get_mobile_sessions(self)-> "list[SessionData]":
         return self.__mobile_sessions
+    
+    def get_subject_id(self)-> str:
+        return self.__subject_id
 
 
     # load all session data. divide into train, validation, and test sets
