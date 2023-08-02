@@ -13,7 +13,7 @@ import copy
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import confusion_matrix
 
-from load_mobio_data import load_MOBIO_dataset, SessionData, SubjectData
+from load_mobio_data import load_MOBIO_dataset, SubjectData
 import tools
 
 """
@@ -117,6 +117,7 @@ def main():
             keepGoing = False
     tools.write_to_json(out_file_path, out_data)
     print("Finished writing to file!")
+# end main function
 
 
 # performs a single test with a given index for which user to use
