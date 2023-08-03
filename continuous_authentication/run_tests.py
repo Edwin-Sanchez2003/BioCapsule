@@ -43,7 +43,7 @@ REFERENCE_SUBJ_DATA_DIR = "./MOBIO_extracted/rs_features.json"
 OUT_DIR = "./MOBIO_extracted/test_results/"
 
 USE_BC = False
-FEATURE_EXTRACTION_MODEL = "facenet"  # "facenet"
+FEATURE_EXTRACTION_MODEL = "arcface"  # "facenet"
 TRAINING_PLATFORM = "single"  # "multi"
 TIME_INTERVAL = 10
 WINDOW_SIZE = 1
@@ -53,7 +53,7 @@ MULTI_RS = False
 AVERAGING_METHOD = ("simple_average", window.simple_average)
 
 # extra name for testing code
-EXTRA_NAME = "uoulu_test"
+EXTRA_NAME = "uoulu_test_new"
 
 
 def main():

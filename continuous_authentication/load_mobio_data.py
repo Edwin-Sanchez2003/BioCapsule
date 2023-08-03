@@ -24,12 +24,12 @@ import biocapsule as bc
 
 # a list of all locations in mobio
 MOBIO_LOCATIONS = [
-    # "but/",
-    # "idiap/",
-    # "lia/",
-    # "uman/",
-    # "unis/",
-    "uoulu/"
+    "but/",
+    "idiap/",
+    "lia/",
+    "uman/",
+    "unis/",
+    "uoulu/",
 ]  # end MOBIO_LOCATIONS
 
 

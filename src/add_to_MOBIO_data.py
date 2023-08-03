@@ -44,13 +44,14 @@ def main():
         # "but/",
         # "idiap/",
         # "lia/",
-        # "uman/",
-        "unis/",  # running
-        # "uoulu" # running
+        # "uman/",  # running
+        # "unis/",  # running
+        # "uoulu" # finished
     ]  # end dirs_to_search
 
     # get the file paths of all of the files
     file_paths = []
+    print(dirs_to_search)
     for data_dir in dirs_to_search:
         search_path = os.path.join(base_path, data_dir)
         found_paths = os.listdir(search_path)
