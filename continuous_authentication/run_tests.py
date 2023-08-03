@@ -55,7 +55,7 @@ MULTI_RS = False
 AVERAGING_METHOD = ("simple_average", window.simple_average)
 
 # extra name for testing code
-EXTRA_NAME = "uoulu_test_new"
+EXTRA_NAME = ""
 
 
 def main():
