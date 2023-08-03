@@ -41,11 +41,11 @@ def main():
     # the directories to search through for compressed files
     base_path = "./MOBIO_extracted/one_sec_intervals/"
     dirs_to_search = [
-        # "but/",
-        # "idiap/",
-        # "lia/",
-        # "uman/",  # running
-        # "unis/",  # running
+        # "but/",  # finished
+        # "idiap/", # finished
+        # "lia/", # finished
+        # "uman/",  # finished
+        # "unis/",  # finished
         # "uoulu" # finished
     ]  # end dirs_to_search
 
