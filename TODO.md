@@ -30,6 +30,11 @@ BioCapsule
 - write the tuning threshold target value & the far/frr for validation per tuned classifier!!!
 - write data extraction code for YouTube Faces, run all tests on theirs for more comparisons!!!
 
+- test in more difficult scenarios? Test live? -> don't try to do too much
+
+## Figures:
+- MMOC Comparison Table
+
 
 ## ~~Update No Detections Logic!!!~~ Finished
 * For training, if no or multi faces -> remove sample; don't use it if its bad!!!! (pos or neg)
