@@ -28,6 +28,7 @@ BioCapsule
 - start running other tests as needed
 - get timed results to see the extra time cost
 - write the tuning threshold target value & the far/frr for validation per tuned classifier!!!
+- write data extraction code for YouTube Faces, run all tests on theirs for more comparisons!!!
 
 
 ## ~~Update No Detections Logic!!!~~ Finished
