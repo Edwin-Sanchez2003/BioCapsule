@@ -44,18 +44,18 @@ REFERENCE_SUBJ_DATA_DIR = (
 )
 OUT_DIR = "./MOBIO_extracted/test_results/"
 
-USE_BC = False
-FEATURE_EXTRACTION_MODEL = "arcface"  # "facenet"
-TRAINING_PLATFORM = "single"  # "multi"
+USE_BC = True
+FEATURE_EXTRACTION_MODEL = "facenet"  # "facenet"
+TRAINING_PLATFORM = "multi"  # "multi"
 TIME_INTERVAL = 10
 WINDOW_SIZE = 1
-MULTI_RS = False
+MULTI_RS = True  # only relevant for biocapsule
 
 # the function to use for averaging windows
 AVERAGING_METHOD = ("simple_average", window.simple_average)
 
 # extra name for testing code
-EXTRA_NAME = ""
+EXTRA_NAME = "multi-rs"
 
 
 def main():
@@ -486,7 +486,8 @@ def tune_threshold(
         tn, fp, fn, tp = conf_matrix.ravel()
         far = get_far(fp=fp, tn=tn)
 
-        # check if the far is greater than
+        # check if the far is greater than target
+        # if yes, then stop tuning
         # multiply by 100 to get a percentage
         if (far * 100) >= target:
             print(f"Threshold set to: {threshold}")

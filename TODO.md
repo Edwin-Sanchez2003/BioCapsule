@@ -23,7 +23,11 @@ BioCapsule
     * What data to store to get as much results later???
     - ~~threshold per subject (pos)~~
     - ~~classification probabilities -> per session~~
+- start making figures & charts
 - start running tests for windowing
+- start running other tests as needed
+- get timed results to see the extra time cost
+- write the tuning threshold target value & the far/frr for validation per tuned classifier!!!
 
 
 ## ~~Update No Detections Logic!!!~~ Finished
