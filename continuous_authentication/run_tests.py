@@ -50,7 +50,7 @@ WINDOW_SIZE = 1
 MULTI_RS = False
 
 # the function to use for averaging windows
-AVERAGING_FUNCTION = window.simple_average
+AVERAGING_METHOD = ("simple_average", window.simple_average)
 
 # extra name for testing code
 EXTRA_NAME = "uoulu_test"
@@ -79,21 +79,23 @@ def main():
     tp, fp, tn, fn = 0, 0, 0, 0
     thresholds_list = []
     threshold_avg = 0
+    per_subject_results = []
     for i in range(len(subjects)):
         print(f"Test for subject: {subjects[i].get_subject_id()}")
-        (s_tp, s_fp, s_tn, s_fn, threshold) = single_user_test(
+        results = single_user_test(
             subjects=subjects,
             subject_index=i,
             training_platform=TRAINING_PLATFORM,
             window_size=WINDOW_SIZE,
         )  # end single_user_test
         # accumulate tp, fp, tn, fn for all subjects
-        tp += s_tp
-        fp += s_fp
-        tn += s_tn
-        fn += s_fn
-        threshold_avg += threshold
-        thresholds_list.append(threshold)
+        tp += results["tp"]
+        fp += results["fp"]
+        tn += results["tn"]
+        fn += results["fn"]
+        threshold_avg += results["threshold"]
+        thresholds_list.append(results["threshold"])
+        per_subject_results.append(copy.deepcopy(results))
     # end for loop over subjects
 
     # get average threshold
@@ -112,6 +114,7 @@ def main():
         "training_platform": TRAINING_PLATFORM,
         "time_interval": TIME_INTERVAL,
         "window_size": WINDOW_SIZE,
+        "averaging_method": AVERAGING_METHOD[0],
         "multi_rs": MULTI_RS,
         "tp": tp,
         "fp": fp,
@@ -122,6 +125,7 @@ def main():
         "total_bad_detections": total_bad_detections,
         "average_threshold": threshold_avg,
         "thresholds_list": thresholds_list,
+        "per_subject_results": per_subject_results,
     }  # end out data
 
     # make sure output dir exists
@@ -154,7 +158,7 @@ def single_user_test(
     subject_index: int,
     training_platform: str,
     window_size: int = 1,
-) -> "tuple[int, int, int, int]":
+) -> dict:
     subject = subjects[subject_index]
 
     # get positive train, val, and test samples and labels
@@ -279,9 +283,14 @@ def single_user_test(
 
     # loop over every subject again
     tp, fp, tn, fn = 0, 0, 0, 0
+    per_test_results = []
     for i, test_subject in enumerate(subjects):
         # get test data for this subject
+        per_session_results = []
+        subj_tp, subj_fp, subj_tn, subj_fn = 0, 0, 0, 0
         for session in test_subject.get_mobile_sessions():
+            temp_fn = 0
+            temp_tn = 0
             # this is the same subject, set classifcation accordingly
             test_samples = None
             test_labels = None
@@ -289,32 +298,80 @@ def single_user_test(
                 test_samples = session.get_feature_vectors()
                 test_labels = session.get_labels(classification=1)
                 # account for bad samples
-                fn += session.get_bad_detection_count()
+                temp_fn += session.get_bad_detection_count()
             else:  # different subject
                 test_samples = session.get_feature_vectors()
                 test_labels = session.get_labels(classification=0)
                 # account for bad samples
-                tn += session.get_bad_detection_count()
+                temp_tn += session.get_bad_detection_count()
             # end if check for positive or negative subject during testing
 
             # run through classifier, get results
-            s_tn, s_fp, s_fn, s_tp = get_test_results(
+            (
+                session_tn,
+                session_fp,
+                session_fn,
+                session_tp,
+                preds,
+            ) = get_test_results(
                 classifier=classifier,
                 test_samples=test_samples,
                 test_labels=test_labels,
                 threshold=threshold,
                 window_size=window_size,
             )  # end get_test_results
+            session_tn += temp_tn
+            session_fn += temp_fn
 
-            # accumulate tp, fp, tn, fn for this subject
-            tp += s_tp
-            fp += s_fp
-            tn += s_tn
-            fn += s_fn
+            # accumulate tp, fp, tn, fn for test subject
+            subj_tp += session_tp
+            subj_fp += session_fp
+            subj_tn += session_tn
+            subj_fn += session_fn
+
+            # get per session results
+            per_session_results.append(
+                {
+                    "session": session.get_session_file_path(),
+                    "tp": session_tp,
+                    "fp": session_fp,
+                    "tn": session_tn,
+                    "fn": session_fn,
+                    "ground_truth_labels": copy.deepcopy(test_labels),
+                    "predicted_probabilities_pos": copy.deepcopy(preds),
+                }
+            )
         # end for over each subject's session
+
+        # accumulate tp, fp, tn, fn for this subject
+        tp += subj_tp
+        fp += subj_fp
+        tn += subj_tn
+        fn += subj_fn
+
+        per_test_results.append(
+            {
+                "subject_id": test_subject.get_subject_id(),
+                "tp": subj_tp,
+                "fp": subj_fp,
+                "tn": subj_tn,
+                "fn": subj_fn,
+                "per_session_results": copy.deepcopy(per_session_results),
+            }
+        )
     # end for loop over each subject
 
-    return (tp, fp, tn, fn, threshold)
+    # assemble collected data for this subject
+    subject_results = {
+        "subject_id": subject.get_subject_id(),
+        "threshold": threshold,
+        "tp": tp,
+        "fp": fp,
+        "tn": tn,
+        "fn": fn,
+        "test_results": copy.deepcopy(per_test_results),
+    }
+    return subject_results
 
 
 # end single_user_test function
@@ -327,7 +384,7 @@ def get_test_results(
     test_labels: "list[int]",
     threshold: float,
     window_size: int,
-) -> "tuple[int, int, int, int]":
+) -> "tuple[int, int, int, int, list]":
     # get predicted probability
     preds = classifier.predict_proba(test_samples)
     preds = preds[:, 1]
@@ -335,7 +392,7 @@ def get_test_results(
     # apply window to preds
     if window_size > 1:
         preds = window.apply_window_to_probabilities(
-            window_size=window_size, preds=preds, avg_fn=AVERAGING_FUNCTION
+            window_size=window_size, preds=preds, avg_fn=AVERAGING_METHOD[1]
         )  # end apply_window_to_probabilities
     # end if check for window size
 
@@ -354,7 +411,7 @@ def get_test_results(
         y_true=test_labels, y_pred=pred_labels, labels=[0, 1]
     )
     tn, fp, fn, tp = conf_matrix.ravel()
-    return (tn, fp, fn, tp)
+    return (tn, fp, fn, tp, preds)
 
 
 # end get_test_results function
@@ -399,7 +456,7 @@ def tune_threshold(
     # apply window to preds
     if window_size > 1:
         preds = window.apply_window_to_probabilities(
-            window_size=window_size, preds=preds, avg_fn=AVERAGING_FUNCTION
+            window_size=window_size, preds=preds, avg_fn=AVERAGING_METHOD[1]
         )  # end apply_window_to_probabilities
     # end if check for window size
 

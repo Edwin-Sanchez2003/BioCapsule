@@ -225,6 +225,10 @@ class SessionData(object):
 
     # end __init__ for SessionData
 
+    # get the session's file_path
+    def get_session_file_path(self) -> str:
+        return self.__session_file_path
+
     # get the flipped feature vectors, if facenet
     def get_flipped_feature_vectors(self) -> "list[list[float]]":
         return self.__flipped_feature_vectors
