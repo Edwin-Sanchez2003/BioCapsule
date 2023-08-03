@@ -39,7 +39,9 @@ args = parser.parse_args()
 
 # Params #
 EXTRACTED_MOBIO_DIR = "./MOBIO_extracted/one_sec_intervals/"
-REFERENCE_SUBJ_DATA_DIR = "./MOBIO_extracted/rs_features.json"
+REFERENCE_SUBJ_DATA_DIR = (
+    "./MOBIO_extracted/rs_features.json"  # LFW faces as reference subjects
+)
 OUT_DIR = "./MOBIO_extracted/test_results/"
 
 USE_BC = False

@@ -14,11 +14,11 @@ BioCapsule
 
 
 # TODO:
-- Re-Run extraction for FaceNet!!!
-- Get flipped features for arcface as well!!!
-- run single test to make sure that performance is consistent for facenet & arcface
+- ~~Re-Run extraction for FaceNet!!!~~
+- ~~Get flipped features for arcface as well!!!~~
+- ~~run single test to make sure that performance is consistent for facenet & arcface~~
 - ~~Updated code to use flipped features for arcface as well~~
-- Get updated results for my table
+- Get updated results for my table!!!
 * ~~Store probabilities from each sesssion's test to use for later~~
     * What data to store to get as much results later???
     - ~~threshold per subject (pos)~~

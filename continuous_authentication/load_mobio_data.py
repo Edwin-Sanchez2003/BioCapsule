@@ -135,21 +135,19 @@ def load_MOBIO_dataset(
     # multi_rs check
     rs_file_name = None
     rs_feature_vector = None
+    rs_gen = None
     if use_bc:
+        # get all of the reference subjects to load
+        rs_gen = yield_reference_subject(
+            file_path=ref_subj_data_dir,
+            feature_extraction_model=feature_extraction_model,
+        )  # end generator init
         if multi_rs == False:
-            rs_file_name = "f210"
-            rs_feature_vector = load_single_rs_feature_vector(
-                file_path="./MOBIO_extracted/one_sec_intervals/XX_removed_from_exp_XX/f210/unis_laptop_1_f210_01.json.gz",
-                feature_extraction_model=feature_extraction_model,
-            )  # end load_single_rs_feature_vector
+            # assign the first subject to be our
+            # reference subject (single rs)
+            rs_file_name, rs_feature_vector = next(rs_gen)
         # end check if use multiple reference subjects
     # end check if use_bc
-
-    # get all of the files to load
-    rs_gen = yield_reference_subject(
-        file_path=ref_subj_data_dir,
-        feature_extraction_model=feature_extraction_model,
-    )  # end generator init
 
     subjects = []
     for location in MOBIO_LOCATIONS:
@@ -158,6 +156,7 @@ def load_MOBIO_dataset(
         subject_dirs = os.listdir(location_path)
         for subject_folder_name in subject_dirs:
             # check if we should use the same reference subject or not
+            # if multi rs, then call next of the data generator
             if multi_rs:
                 rs_data = next(rs_gen)
                 rs_file_name = rs_data[0]
