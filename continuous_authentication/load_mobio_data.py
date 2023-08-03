@@ -192,6 +192,7 @@ class SessionData(object):
         # load the feature vectors and the indices corresponding
         # to the feature vectors with non-faces
         self.__feature_vectors = []
+        self.__flipped_feature_vectors = []
         self.__bad_detections = []
         self.__load_single_subject_session_data(session_file_path=self.__session_file_path)
         assert self.__feature_vectors != None
@@ -203,6 +204,9 @@ class SessionData(object):
         # end if
     # end __init__ for SessionData
 
+    # get the flipped feature vectors, if facenet
+    def get_flipped_feature_vectors(self)-> "list[list[float]]":
+        return self.__flipped_feature_vectors
 
     # function for retrieving feature vectors for running a test
     def get_feature_vectors(self)-> "list[list[float]]":
@@ -269,6 +273,12 @@ class SessionData(object):
                 self.__feature_vectors.append(
                     session_data["frame_data"][t_index]["feature_vectors"][self.__feature_extraction_model]
                 ) # end append feature vector to list of feature vectors
+
+                # check if its facenet
+                if self.__feature_extraction_model == "facenet":
+                    self.__flipped_feature_vectors.append(
+                        session_data["frame_data"][t_index]["feature_vectors"]["facenet_flip"]
+                    )
             # end if check for non_faces_indices
         # end for loop over feature vectors
         print(f"Num Good Detections found: {len(self.__feature_vectors)}")

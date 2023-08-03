@@ -49,7 +49,7 @@ def main():
         #"lia/",
         #"uman/",
         #"unis/",
-        #"uoulu"
+        "uoulu"
     ] # end dirs_to_search
 
     # get the file paths of all of the files
@@ -58,7 +58,11 @@ def main():
         search_path = os.path.join(base_path, data_dir)
         found_paths = os.listdir(search_path)
         for path in found_paths:
-            file_paths.append(os.path.join(search_path, path))
+            full_path = os.path.join(search_path, path)
+            file_names = os.listdir(full_path)
+            for file_name in file_names:
+                file_path  = os.path.join(full_path, file_name)
+                file_paths.append(file_path)
     num_files = len(file_paths)
 
     # loop over files, extracting data
@@ -78,10 +82,11 @@ def main():
             pre_proc_frame = np.array(sample["preprocessing_tensors"]["mtcnn"]) 
             
             # convert to supported integer type
-            pre_proc_frame = np.uint8(pre_proc_frame)
+            pre_proc_frame = pre_proc_frame.astype(float)
             
             # shuffle dimensions around
             pre_proc_frame = np.rollaxis(pre_proc_frame, 0, 3)
+            flipped_frame = cv2.flip(pre_proc_frame, 1) # flips along vertical axis
             
             #print(pre_proc_frame.shape)
             #cv2.imshow("img", pre_proc_frame)
@@ -93,9 +98,15 @@ def main():
                 align=False # already did preprocessing step, don't do again
             ) # end model.extract
 
+            flipped_vector = model.extract(
+                face_img=flipped_frame,
+                align=False
+            )
+
             # add new feature vector to data
             # since sample is a ptr, just add to existing dict
             sample["feature_vectors"]["facenet"] = feature_vector.tolist()
+            sample["feature_vectors"]["facenet_flip"] = flipped_vector.tolist()
 
         # after all samples gotten their appended
         # feature vectors, write back to compressed json file

@@ -74,7 +74,7 @@ class FaceNet:
             if len(face_img.shape) == 2:
                 face_img = cv2.cvtColor(face_img, cv2.COLOR_GRAY2BGR)
 
-            face_img = cv2.cvtColor(face_img, cv2.COLOR_BGR2RGB)
+            #face_img = cv2.cvtColor(face_img, cv2.COLOR_BGR2RGB)
             face_img = cv2.resize(face_img, (160, 160))
 
         return self.__model.get_feature(face_img)

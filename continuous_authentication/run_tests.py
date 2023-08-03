@@ -162,9 +162,15 @@ def single_user_test(
     if training_platform == "single":
         pos_train_samples = copy.deepcopy(subject.get_mobile_session_one().get_feature_vectors())
         pos_train_labels = subject.get_mobile_session_one().get_labels(classification=1)
+        if FEATURE_EXTRACTION_MODEL == "facenet":
+            pos_train_samples.extend(copy.deepcopy(subject.get_mobile_session_one().get_flipped_feature_vectors()))
+            pos_train_labels.extend(subject.get_mobile_session_one().get_labels(classification=1))
     else: # multi/cross platform (train with laptop data)
         pos_train_samples = copy.deepcopy(subject.get_laptop_session().get_feature_vectors())
         pos_train_labels = subject.get_laptop_session().get_labels(classification=1)
+        if FEATURE_EXTRACTION_MODEL == "facenet":
+            pos_train_samples.extend(copy.deepcopy(subject.get_laptop_session().get_flipped_feature_vectors()))
+            pos_train_labels.extend(subject.get_laptop_session().get_labels(classification=1))
     # end get pos train data
 
     # split into train & validation sets
@@ -342,7 +348,7 @@ def tune_threshold(
         )-> float:
     # get predicted probability
     preds = classifier.predict_proba(val_samples)
-    preds = rem_extra_prob(preds=preds)
+    preds = preds[:, 1] # get only pos predictions
 
     # apply window to preds
     if window_size > 1:

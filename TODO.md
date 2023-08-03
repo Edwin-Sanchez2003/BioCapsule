@@ -16,6 +16,10 @@ BioCapsule
     - threshold per subject (pos)
     - classification probabilities -> per session, per subject, per test
 
+
+* Consider re-running extraction for FaceNet model - fixed some minor issues
+* Create flipped feature vectors
+
 ## ~~Update No Detections Logic!!!~~ Finished
 * For training, if no or multi faces -> remove sample; don't use it if its bad!!!! (pos or neg)
 * For testing -> if its the person themselves
