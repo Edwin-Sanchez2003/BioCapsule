@@ -6,17 +6,16 @@
     performance of the BioCapsule (BC) system with Face Authentication.
 """
 
+import copy
 import os
 import random
-import copy
 import time
 
-from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import confusion_matrix
-
-from load_mobio_data import load_MOBIO_dataset, SubjectData
 import tools
 import window
+from load_mobio_data import SubjectData, load_MOBIO_dataset
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import confusion_matrix
 
 """
 # implement arguments at some point...
@@ -44,8 +43,8 @@ REFERENCE_SUBJ_DATA_DIR = "./MOBIO_extracted/rs_features.json"
 OUT_DIR = "./MOBIO_extracted/test_results/"
 
 USE_BC = False
-FEATURE_EXTRACTION_MODEL = "facenet" # "facenet"
-TRAINING_PLATFORM = "single" # "multi"
+FEATURE_EXTRACTION_MODEL = "facenet"  # "facenet"
+TRAINING_PLATFORM = "single"  # "multi"
 TIME_INTERVAL = 10
 WINDOW_SIZE = 1
 MULTI_RS = False
@@ -61,7 +60,9 @@ def main():
     # check TRAINING_PLATFORM param. the other params are checked later
     if TRAINING_PLATFORM != "single":
         if TRAINING_PLATFORM != "multi":
-            raise Exception("Training Platform is not valid. Must be either 'single' or 'multi'")
+            raise Exception(
+                "Training Platform is not valid. Must be either 'single' or 'multi'"
+            )
 
     # load data into a simple to use format
     subjects = load_MOBIO_dataset(
@@ -70,12 +71,12 @@ def main():
         feature_extraction_model=FEATURE_EXTRACTION_MODEL,
         use_bc=USE_BC,
         multi_rs=MULTI_RS,
-        ref_subj_data_dir=REFERENCE_SUBJ_DATA_DIR
-    ) # end load_MOBIO_dataset function call
+        ref_subj_data_dir=REFERENCE_SUBJ_DATA_DIR,
+    )  # end load_MOBIO_dataset function call
 
     # perform tests per user
     print("Performing Tests...")
-    tp, fp, tn, fn = 0,0,0,0
+    tp, fp, tn, fn = 0, 0, 0, 0
     thresholds_list = []
     threshold_avg = 0
     for i in range(len(subjects)):
@@ -84,8 +85,8 @@ def main():
             subjects=subjects,
             subject_index=i,
             training_platform=TRAINING_PLATFORM,
-            window_size=WINDOW_SIZE
-        ) # end single_user_test
+            window_size=WINDOW_SIZE,
+        )  # end single_user_test
         # accumulate tp, fp, tn, fn for all subjects
         tp += s_tp
         fp += s_fp
@@ -96,10 +97,12 @@ def main():
     # end for loop over subjects
 
     # get average threshold
-    threshold_avg = threshold_avg/len(subjects)
+    threshold_avg = threshold_avg / len(subjects)
 
     # get the non-face-count
-    total_bad_detections = get_bad_detection_count(subjects=subjects, training_platform=TRAINING_PLATFORM)
+    total_bad_detections = get_bad_detection_count(
+        subjects=subjects, training_platform=TRAINING_PLATFORM
+    )
 
     # collect information from testing
     # store the probability classifications so we can extract more data later
@@ -118,8 +121,8 @@ def main():
         "frr": get_frr(fn=fn, tp=tp),
         "total_bad_detections": total_bad_detections,
         "average_threshold": threshold_avg,
-        "thresholds_list": thresholds_list
-    } # end out data
+        "thresholds_list": thresholds_list,
+    }  # end out data
 
     # make sure output dir exists
     if os.path.isdir(OUT_DIR) == False:
@@ -140,16 +143,18 @@ def main():
             keepGoing = False
     tools.write_to_json(out_file_path, out_data)
     print("Finished writing to file!")
+
+
 # end main function
 
 
 # performs a single test with a given index for which user to use
 def single_user_test(
-        subjects:"list[SubjectData]",
-        subject_index:int,
-        training_platform:str,
-        window_size:int=1
-    )-> "tuple[int, int, int, int]":
+    subjects: "list[SubjectData]",
+    subject_index: int,
+    training_platform: str,
+    window_size: int = 1,
+) -> "tuple[int, int, int, int]":
     subject = subjects[subject_index]
 
     # get positive train, val, and test samples and labels
@@ -160,66 +165,102 @@ def single_user_test(
     pos_train_labels = None
     # classification is 1 since these are positive samples
     if training_platform == "single":
-        pos_train_samples = copy.deepcopy(subject.get_mobile_session_one().get_feature_vectors())
-        pos_train_labels = subject.get_mobile_session_one().get_labels(classification=1)
-        if FEATURE_EXTRACTION_MODEL == "facenet":
-            pos_train_samples.extend(copy.deepcopy(subject.get_mobile_session_one().get_flipped_feature_vectors()))
-            pos_train_labels.extend(subject.get_mobile_session_one().get_labels(classification=1))
-    else: # multi/cross platform (train with laptop data)
-        pos_train_samples = copy.deepcopy(subject.get_laptop_session().get_feature_vectors())
-        pos_train_labels = subject.get_laptop_session().get_labels(classification=1)
-        if FEATURE_EXTRACTION_MODEL == "facenet":
-            pos_train_samples.extend(copy.deepcopy(subject.get_laptop_session().get_flipped_feature_vectors()))
-            pos_train_labels.extend(subject.get_laptop_session().get_labels(classification=1))
+        pos_train_samples = copy.deepcopy(
+            subject.get_mobile_session_one().get_feature_vectors()
+        )
+        pos_train_labels = subject.get_mobile_session_one().get_labels(
+            classification=1
+        )
+        pos_train_samples.extend(
+            copy.deepcopy(
+                subject.get_mobile_session_one().get_flipped_feature_vectors()
+            )
+        )
+        pos_train_labels.extend(
+            subject.get_mobile_session_one().get_labels(classification=1)
+        )
+    else:  # multi/cross platform (train with laptop data)
+        pos_train_samples = copy.deepcopy(
+            subject.get_laptop_session().get_feature_vectors()
+        )
+        pos_train_labels = subject.get_laptop_session().get_labels(
+            classification=1
+        )
+        pos_train_samples.extend(
+            copy.deepcopy(
+                subject.get_laptop_session().get_flipped_feature_vectors()
+            )
+        )
+        pos_train_labels.extend(
+            subject.get_laptop_session().get_labels(classification=1)
+        )
     # end get pos train data
 
     # split into train & validation sets
-    (pos_train_samples, 
-     pos_train_labels, 
-     pos_val_samples, 
-     pos_val_labels) = get_train_test_split(
-        samples=pos_train_samples,
-        labels=pos_train_labels
-    ) # end get_train_test_split
+    (
+        pos_train_samples,
+        pos_train_labels,
+        pos_val_samples,
+        pos_val_labels,
+    ) = get_train_test_split(
+        samples=pos_train_samples, labels=pos_train_labels
+    )  # end get_train_test_split
 
     # get negative train & validation samples
     neg_train_samples = []
     neg_train_labels = []
     for i, test_subject in enumerate(subjects):
-        if i == subject_index: # make sure we're not getting this subject's data again
+        if (
+            i == subject_index
+        ):  # make sure we're not getting this subject's data again
             continue
-    
+
         # get the negative data
         # classification is 0 since these are negative samples
         if training_platform == "single":
-            neg_train_samples.extend(copy.deepcopy(test_subject.get_mobile_session_one().get_feature_vectors()))
-            neg_train_labels.extend(test_subject.get_mobile_session_one().get_labels(classification=0))
-        else: # multi/cross platform (train with laptop data)
-            neg_train_samples.extend(copy.deepcopy(test_subject.get_laptop_session().get_feature_vectors()))
-            neg_train_labels.extend(test_subject.get_laptop_session().get_labels(classification=0))
+            neg_train_samples.extend(
+                copy.deepcopy(
+                    test_subject.get_mobile_session_one().get_feature_vectors()
+                )
+            )
+            neg_train_labels.extend(
+                test_subject.get_mobile_session_one().get_labels(
+                    classification=0
+                )
+            )
+        else:  # multi/cross platform (train with laptop data)
+            neg_train_samples.extend(
+                copy.deepcopy(
+                    test_subject.get_laptop_session().get_feature_vectors()
+                )
+            )
+            neg_train_labels.extend(
+                test_subject.get_laptop_session().get_labels(classification=0)
+            )
         # end get neg train data
     # end for loop over other subjects to get negative train & validation data
 
     # split into train & validation sets
-    (neg_train_samples, 
-     neg_train_labels, 
-     neg_val_samples, 
-     neg_val_labels) = get_train_test_split(
-        samples=neg_train_samples,
-        labels=neg_train_labels
-    ) # end get_train_test_split
+    (
+        neg_train_samples,
+        neg_train_labels,
+        neg_val_samples,
+        neg_val_labels,
+    ) = get_train_test_split(
+        samples=neg_train_samples, labels=neg_train_labels
+    )  # end get_train_test_split
 
     # combine train pos & neg
     train_samples, train_labels = combine_samples_and_labels(
         samples=[pos_train_samples, neg_train_samples],
-        labels=[pos_train_labels, neg_train_labels]
-    ) # end combine_samples_and_labels
+        labels=[pos_train_labels, neg_train_labels],
+    )  # end combine_samples_and_labels
 
     # combine val pos & neg
     val_samples, val_labels = combine_samples_and_labels(
         samples=[pos_val_samples, neg_val_samples],
-        labels=[pos_val_labels, neg_val_labels]
-    ) # end combine_samples_and_labels
+        labels=[pos_val_labels, neg_val_labels],
+    )  # end combine_samples_and_labels
 
     # train the classifier
     print("Training Classifier...")
@@ -233,23 +274,23 @@ def single_user_test(
         classifier=classifier,
         val_samples=val_samples,
         val_labels=val_labels,
-        window_size=window_size
-    ) # end threshold tuning
+        window_size=window_size,
+    )  # end threshold tuning
 
     # loop over every subject again
-    tp, fp, tn, fn = 0,0,0,0
+    tp, fp, tn, fn = 0, 0, 0, 0
     for i, test_subject in enumerate(subjects):
         # get test data for this subject
         for session in test_subject.get_mobile_sessions():
             # this is the same subject, set classifcation accordingly
             test_samples = None
             test_labels = None
-            if i == subject_index: # same subject
+            if i == subject_index:  # same subject
                 test_samples = session.get_feature_vectors()
                 test_labels = session.get_labels(classification=1)
                 # account for bad samples
                 fn += session.get_bad_detection_count()
-            else: # different subject
+            else:  # different subject
                 test_samples = session.get_feature_vectors()
                 test_labels = session.get_labels(classification=0)
                 # account for bad samples
@@ -262,8 +303,8 @@ def single_user_test(
                 test_samples=test_samples,
                 test_labels=test_labels,
                 threshold=threshold,
-                window_size=window_size
-            ) # end get_test_results
+                window_size=window_size,
+            )  # end get_test_results
 
             # accumulate tp, fp, tn, fn for this subject
             tp += s_tp
@@ -274,28 +315,28 @@ def single_user_test(
     # end for loop over each subject
 
     return (tp, fp, tn, fn, threshold)
+
+
 # end single_user_test function
 
 
 # get test results
 def get_test_results(
-        classifier:LogisticRegression,
-        test_samples:"list[list[float]]",
-        test_labels:"list[int]",
-        threshold:float,
-        window_size:int
-    )-> "tuple[int, int, int, int]":
+    classifier: LogisticRegression,
+    test_samples: "list[list[float]]",
+    test_labels: "list[int]",
+    threshold: float,
+    window_size: int,
+) -> "tuple[int, int, int, int]":
     # get predicted probability
     preds = classifier.predict_proba(test_samples)
-    preds = rem_extra_prob(preds=preds)
+    preds = preds[:, 1]
 
     # apply window to preds
     if window_size > 1:
         preds = window.apply_window_to_probabilities(
-            window_size=window_size,
-                preds=preds,
-                avg_fn=AVERAGING_FUNCTION
-        ) # end apply_window_to_probabilities
+            window_size=window_size, preds=preds, avg_fn=AVERAGING_FUNCTION
+        )  # end apply_window_to_probabilities
     # end if check for window size
 
     # get classes using the threshold
@@ -309,18 +350,23 @@ def get_test_results(
     # end for over predicted probabilities
 
     # compare to test labels and get performance
-    conf_matrix = confusion_matrix(y_true=test_labels, y_pred=pred_labels, labels=[0, 1])
+    conf_matrix = confusion_matrix(
+        y_true=test_labels, y_pred=pred_labels, labels=[0, 1]
+    )
     tn, fp, fn, tp = conf_matrix.ravel()
     return (tn, fp, fn, tp)
+
+
 # end get_test_results function
 
 
 # split training data into train and validation sets
-def get_train_test_split(samples:"list[list[float]]",
-                         labels:"list[int]", 
-                         train_split_percentage:float=0.8,
-                         rand_shuffle_seed:int=42
-                         )-> tuple:
+def get_train_test_split(
+    samples: "list[list[float]]",
+    labels: "list[int]",
+    train_split_percentage: float = 0.8,
+    rand_shuffle_seed: int = 42,
+) -> tuple:
     # shuffle the samples and labels for training before splitting
     random.Random(x=rand_shuffle_seed).shuffle(samples)
     random.Random(x=rand_shuffle_seed).shuffle(labels)
@@ -332,40 +378,38 @@ def get_train_test_split(samples:"list[list[float]]",
     train_split_labels = labels[:split_index]
     val_split_labels = labels[split_index:]
     return (
-        train_split_samples, 
+        train_split_samples,
         train_split_labels,
-        val_split_samples, 
-        val_split_labels
-    ) # end return tuple
+        val_split_samples,
+        val_split_labels,
+    )  # end return tuple
 
 
 # tune the threshold for the classifier
 def tune_threshold(
-        classifier:LogisticRegression,
-        val_samples:"list[list[float]]",
-        val_labels:"list[int]",
-        window_size:int
-        )-> float:
+    classifier: LogisticRegression,
+    val_samples: "list[list[float]]",
+    val_labels: "list[int]",
+    window_size: int,
+) -> float:
     # get predicted probability
     preds = classifier.predict_proba(val_samples)
-    preds = preds[:, 1] # get only pos predictions
+    preds = preds[:, 1]  # get only pos predictions
 
     # apply window to preds
     if window_size > 1:
         preds = window.apply_window_to_probabilities(
-            window_size=window_size,
-                preds=preds,
-                avg_fn=AVERAGING_FUNCTION
-        ) # end apply_window_to_probabilities
+            window_size=window_size, preds=preds, avg_fn=AVERAGING_FUNCTION
+        )  # end apply_window_to_probabilities
     # end if check for window size
 
-    step_size = 0.01 # the step size for the threshold
-    target = 0.1 # the target percentage for far
+    step_size = 0.01  # the step size for the threshold
+    target = 0.1  # the target percentage for far
 
     # loop over possible thresholds
     threshold = 0
     for i in range(50, 0, -1):
-        threshold = i*step_size
+        threshold = i * step_size
         # get classes using the threshold
         pred_labels = []
         for pred in preds:
@@ -377,18 +421,22 @@ def tune_threshold(
         # end for over predicted probabilities
 
         # get metrics based on thresh
-        conf_matrix = confusion_matrix(y_true=val_labels, y_pred=pred_labels, labels=[0, 1])
+        conf_matrix = confusion_matrix(
+            y_true=val_labels, y_pred=pred_labels, labels=[0, 1]
+        )
         tn, fp, fn, tp = conf_matrix.ravel()
         far = get_far(fp=fp, tn=tn)
 
         # check if the far is greater than
         # multiply by 100 to get a percentage
-        if (far*100) >= target:
+        if (far * 100) >= target:
             print(f"Threshold set to: {threshold}")
             return threshold
     # end for over test thesholds
     print("Did not find far... set to default threshold of 0.5!")
     return 0.5
+
+
 # end tune_threshold
 
 
@@ -396,12 +444,8 @@ def tune_threshold(
 # them to 1s or 0s based on a threshold value
 # assumes preds are the probability for the "yes" authentication
 # probabilities
-def binarize_predictions(
-        preds:"list[float]",
-        threshold:int
-    )-> "list[int]":
-    
-    pred_labels = [0]*len(preds)
+def binarize_predictions(preds: "list[float]", threshold: int) -> "list[int]":
+    pred_labels = [0] * len(preds)
     for i, pred in enumerate(preds):
         if pred >= threshold:
             pred_labels[i] = 1
@@ -409,13 +453,15 @@ def binarize_predictions(
             pred_labels[i] = 0
     # end for loop over predictions
     return pred_labels
+
+
 # end binarize_predictions
 
 
 # remove no authentication probability
 # returns a list of single probabilities of "yes" authentication
-def rem_extra_prob(preds:"list[list[float]]")-> "list[float]":
-    slim_pred = [0]*(len(preds))
+def rem_extra_prob(preds: "list[list[float]]") -> "list[float]":
+    slim_pred = [0] * (len(preds))
     for i, pred in enumerate(preds):
         slim_pred[i] = pred[1]
     return slim_pred
@@ -424,11 +470,10 @@ def rem_extra_prob(preds:"list[list[float]]")-> "list[float]":
 # takes a list of a list of samples, a list of list of labels,
 # and puts them all into a single list for each using list.extend()
 def combine_samples_and_labels(
-        samples:"list[list[list[float]]]", 
-        labels:"list[list[int]]",
-        rand_shuffle_seed:int=42
-    )-> "tuple[list[list[float]], list[int]]":
-
+    samples: "list[list[list[float]]]",
+    labels: "list[list[int]]",
+    rand_shuffle_seed: int = 42,
+) -> "tuple[list[list[float]], list[int]]":
     # combine lists
     out_samples = []
     for sample_list in samples:
@@ -444,39 +489,46 @@ def combine_samples_and_labels(
     random.Random(x=rand_shuffle_seed).shuffle(out_labels)
 
     return (out_samples, out_labels)
+
+
 # end combine_samples_and_labels
 
 
 # gets the number of non-face samples during testing
 def get_bad_detection_count(
-        subjects:"list[SubjectData]",
-        training_platform:str
-    )-> int:
+    subjects: "list[SubjectData]", training_platform: str
+) -> int:
     total_non_faces = 0
     for subject in subjects:
         # get non faces for the selected training set
-        if training_platform == "single": # get mobile train non-faces
-            total_non_faces += subject.get_laptop_session().get_bad_detection_count()
-        else: # get laptop train non-faces
-            total_non_faces += subject.get_mobile_session_one().get_bad_detection_count()
-        
+        if training_platform == "single":  # get mobile train non-faces
+            total_non_faces += (
+                subject.get_laptop_session().get_bad_detection_count()
+            )
+        else:  # get laptop train non-faces
+            total_non_faces += (
+                subject.get_mobile_session_one().get_bad_detection_count()
+            )
+
         # get non faces for the rest of the subject's sessions
         for session in subject.get_mobile_sessions():
             total_non_faces += session.get_bad_detection_count()
     # end for loop over subjects
     return total_non_faces
+
+
 # end get_non_face_count
 
 
 # False Acceptance Rate
-def get_far(fp, tn)-> float:
+def get_far(fp, tn) -> float:
     if (fp == 0) and (tn == 0):
         return None
     return float(fp / (fp + tn))
 
 
 # False Rejection Rate
-def get_frr(fn, tp)-> float:
+def get_frr(fn, tp) -> float:
     if (fn == 0) and (tp == 0):
         return None
     return float(fn / (fn + tp))

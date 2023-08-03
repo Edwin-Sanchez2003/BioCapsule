@@ -9,6 +9,7 @@ from utils import progress_bar, walk
 
 np.random.seed(42)
 
+
 # older
 class FaceNet:
     """FaceNet: A Unified Embedding for Face Recognition and Clustering
@@ -74,10 +75,11 @@ class FaceNet:
             if len(face_img.shape) == 2:
                 face_img = cv2.cvtColor(face_img, cv2.COLOR_GRAY2BGR)
 
-            #face_img = cv2.cvtColor(face_img, cv2.COLOR_BGR2RGB)
+            # face_img = cv2.cvtColor(face_img, cv2.COLOR_BGR2RGB)
             face_img = cv2.resize(face_img, (160, 160))
 
         return self.__model.get_feature(face_img)
+
 
 # newer
 class ArcFace:
@@ -131,7 +133,7 @@ class ArcFace:
                 face_img = cv2.cvtColor(face_img, cv2.COLOR_GRAY2BGR)
 
             face_img = cv2.resize(face_img, (112, 112))
-            face_img = cv2.cvtColor(face_img, cv2.COLOR_BGR2RGB)
+            # face_img = cv2.cvtColor(face_img, cv2.COLOR_BGR2RGB)
             face_img = np.rollaxis(face_img, 2, 0)
 
         return self.__model.get_feature(face_img)
@@ -143,7 +145,7 @@ def extract_dataset(
     detector: str = "mtcnn",
     flipped: bool = True,
     gpu: int = -1,
-    add_new: bool = False
+    add_new: bool = False,
 ):
     """Extract feature vectors of each image within a dataset.
     Save array conatining all extracted features to disk.
@@ -185,7 +187,7 @@ def extract_dataset(
         file_cnt += len(walk(edwin_images_dir))
 
     # pre-assign space for our features
-    features = np.zeros((file_cnt, 513)) # ???
+    features = np.zeros((file_cnt, 513))  # ???
 
     # generate a list of the people in the dataset
     subjects = sorted(
@@ -194,7 +196,7 @@ def extract_dataset(
 
     print("extract dataset")
     # generate feat. vectors from all of the images in the dataset
-    img_cnt = 0    
+    img_cnt = 0
     for subject_id, subject in enumerate(subjects):
         progress_bar(f"{dataset} {method}", (img_cnt + 1) / file_cnt)
 
@@ -248,11 +250,13 @@ def extract_dataset(
 
         if add_new:
             np.savez_compressed(
-                f"{data_dir}{dataset}_{method}_{detector}_flip_feat_edwin.npz", features
+                f"{data_dir}{dataset}_{method}_{detector}_flip_feat_edwin.npz",
+                features,
             )
         else:
             np.savez_compressed(
-                f"{data_dir}{dataset}_{method}_{detector}_flip_feat.npz", features
+                f"{data_dir}{dataset}_{method}_{detector}_flip_feat.npz",
+                features,
             )
 
 

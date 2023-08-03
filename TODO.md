@@ -11,14 +11,20 @@ BioCapsule
     * lock in a **few important starting params** & mess with the window size & averaging method.
     * main focus: bc/no bc, so lock all other variables in place (arface & single platform)
 * ~~Re-Run the experiment with all using a single reference subject and all using a different reference subject, to verify bc performance~~
+
+
+# TODO:
+- Re-Run extraction for FaceNet!!!
+- Get flipped features for arcface as well!!!
+- run single test to make sure that performance is consistent for facenet & arcface
+- ~~Updated code to use flipped features for arcface as well~~
+- Get updated results for my table
 * Store probabilities from each sesssion's test to use for later
     * What data to store to get as much results later???
     - threshold per subject (pos)
     - classification probabilities -> per session, per subject, per test
+- start running tests for windowing
 
-
-* Consider re-running extraction for FaceNet model - fixed some minor issues
-* Create flipped feature vectors
 
 ## ~~Update No Detections Logic!!!~~ Finished
 * For training, if no or multi faces -> remove sample; don't use it if its bad!!!! (pos or neg)
@@ -26,3 +32,8 @@ BioCapsule
     - if **pos subject test**, but bad detection, automatically a false negative w/ 0.000 probability
         - penalize our results due to failure of MTCNN
     - if **neg subject test**, but bad detection, automatically true negative, w/ 0.000 probability
+
+## What was the big error for facenet?
+- couple extraction errors
+- threshold tuning with flipped frames helped
+- **when loading in models for training, make sure that the preprecessed frames are loaded  in consistently. If the model loads the first time and reshapes the image, but doesn't the second time, then we're going to run into issues in performance!!! re-write the code so that extraction and testing will consistently load images for feature extraction**
