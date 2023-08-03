@@ -24,11 +24,11 @@ from load_rs_features import yield_reference_subject
 
 # a list of all locations in mobio
 MOBIO_LOCATIONS = [
-    "but/",
-    "idiap/",
-    "lia/",
-    "uman/",
-    "unis/",
+    #"but/",
+    #"idiap/",
+    #"lia/",
+    #"uman/",
+    #"unis/",
     "uoulu/"
 ] # end MOBIO_LOCATIONS
 
@@ -260,7 +260,7 @@ class SessionData(object):
         for t_index in range(0, num_features, self.__time_interval):
             # check if there's more than one face or no faces
             # if so, add to non_face_indices for this session
-            if int(session_data["frame_data"][t_index]["num_faces_detected"]) != 1:
+            if int(session_data["frame_data"][t_index]["num_faces_detected"]) == 0:
                 self.__bad_detections.append(
                     session_data["frame_data"][t_index]["feature_vectors"][self.__feature_extraction_model]
                 ) # end append to non face feature vectors

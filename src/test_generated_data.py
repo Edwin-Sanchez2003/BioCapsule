@@ -48,14 +48,16 @@ def main():
         file_names = os.listdir(input_dir)
         num_files = len(file_names)
 
-        # randomly select files to test
+        # randomly select folder to test
         for file_num in range(NUM_FILES_TO_CHECK):
             random.seed()
             i = random.randint(0, num_files-1)
-            file_path = os.path.join(input_dir, file_names[i])
+            folder_path = os.path.join(input_dir, file_names[i])
+            file_name = os.listdir(folder_path)[0]
+            file_path = os.path.join(folder_path, file_name)
             run_tests(file_path=file_path)
-            print(f"Finished file {file_num}")
-            input("Press [Enter] to continue to next file.")
+            print(f"Finished folder {file_num}")
+            input("Press [Enter] to continue to next folder.")
 
 
 def run_tests(file_path:str):
@@ -107,6 +109,7 @@ def view_preprocessed_image(pre_processed_tensor:list)-> None:
     pre_processed_tensor = np.uint8(pre_processed_tensor)
     pre_processed_tensor = np.rollaxis(pre_processed_tensor, 0, 3)
     img = Image.fromarray(pre_processed_tensor)
+    img.save("./test.png")
     img.show("preprocessed image")
 
 

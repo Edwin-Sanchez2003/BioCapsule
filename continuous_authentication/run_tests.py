@@ -48,13 +48,13 @@ FEATURE_EXTRACTION_MODEL = "facenet" # "facenet"
 TRAINING_PLATFORM = "single" # "multi"
 TIME_INTERVAL = 10
 WINDOW_SIZE = 1
-MULTI_RS = False # not implemented yet...
+MULTI_RS = False
 
 # the function to use for averaging windows
 AVERAGING_FUNCTION = window.simple_average
 
 # extra name for testing code
-EXTRA_NAME = "window_test"
+EXTRA_NAME = "uoulu_test"
 
 
 def main():
