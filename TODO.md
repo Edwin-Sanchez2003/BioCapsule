@@ -12,6 +12,7 @@ BioCapsule
     * main focus: bc/no bc, so lock all other variables in place (arface & single platform)
 * ~~Re-Run the experiment with all using a single reference subject and all using a different reference subject, to verify bc performance~~
 * Store probabilities from each sesssion's test to use for later
+    * What data to store to get as much results later???
 
 ## ~~Update No Detections Logic!!!~~ Finished
 * For training, if no or multi faces -> remove sample; don't use it if its bad!!!! (pos or neg)
