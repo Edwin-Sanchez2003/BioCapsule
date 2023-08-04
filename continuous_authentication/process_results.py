@@ -17,7 +17,8 @@ from sklearn.metrics import confusion_matrix
 
 
 def main():
-    get_mean_eer(results_dir="./MOBIO_extracted/test_results/")
+    print_mean_eer(results_dir="./MOBIO_extracted/test_results/")
+    # get_mean_eer(results_dir="./MOBIO_extracted/test_results/")
     """
     append_info(
         results_dir="./MOBIO_extracted/test_results/",
@@ -35,6 +36,34 @@ def get_mean_eer(results_dir: str) -> None:
             f"Starting file {i+1} of {len(file_paths)} | file: {os.path.basename(file_path)}"
         )
         get_comparable_results(file_path=file_path)
+
+
+def print_mean_eer(results_dir: str) -> None:
+    file_paths = tools.get_files_with_paths(input_dir=results_dir)
+    for i, file_path in enumerate(file_paths):
+        print(
+            f"File {i+1} of {len(file_paths)} | file: {os.path.basename(file_path)}"
+        )
+        # load the given results json file
+        results = tools.load_json_file(file_path=file_path)
+
+        # the list of MOBIO locations
+        mobio_locations = [
+            "but",
+            "idiap",
+            "lia",
+            "uman",
+            "unis",
+            "uoulu",
+        ]  # end mobio locations
+
+        for loc in mobio_locations:
+            print(
+                f"Location: {loc} | Mean EER: {results[loc]['mean_eer']} | Std Dev: {results[loc]['std_dev']}"
+            )
+        print(
+            f"Overall EER: {results['mean_eer']} | Overall Std Dev: {results['std_dev']}"
+        )
 
 
 # this function gets results that allow us to make
@@ -143,7 +172,6 @@ def get_comparable_results(file_path: str) -> None:
 def calc_eer(
     gt_labels: "list[int]",
     pred_probs: "list[float]",
-    step_size: float = 0.001,
     precision_sig_figs: int = 2,
 ):
     # loop over possible thresholds
@@ -152,30 +180,39 @@ def calc_eer(
     # generate what the predicted class would be (0 or 1)
     # see if the calculated far & frr would be equal
     # (to some level of precision)
-    for i in range(500, 0, -1):
-        # calculate
-        threshold = i * step_size
-        # get classes using the threshold
-        pred_labels = []
-        for pred in pred_probs:
-            # check the classification = 1 probability
-            if pred >= threshold:
-                pred_labels.append(1)
-            else:
-                pred_labels.append(0)
-        # end for over predicted probabilities
 
-        # get metrics based on thresh
-        conf_matrix = confusion_matrix(
-            y_true=gt_labels, y_pred=pred_labels, labels=[0, 1]
-        )  # end confusion_matrix generation
-        tn, fp, fn, tp = conf_matrix.ravel()
-        far = get_far(fp=fp, tn=tn)
-        frr = get_frr(fn=fn, tp=tp)
+    # loop, getting finer & finer each time
+    step_size = 0.1
+    start_val = 10
+    while True:
+        # move step size down one decimal place,
+        # move start val up one decimal place
+        step_size = step_size * 0.1
+        start_val = start_val * 10
+        for i in range(start_val, 0, -1):
+            # calculate
+            threshold = i * step_size
+            # get classes using the threshold
+            pred_labels = []
+            for pred in pred_probs:
+                # check the classification = 1 probability
+                if pred >= threshold:
+                    pred_labels.append(1)
+                else:
+                    pred_labels.append(0)
+            # end for over predicted probabilities
 
-        # check if they are the same, to a precision level
-        if math.isclose(far, frr, abs_tol=10**-precision_sig_figs):
-            return (far, frr, threshold)
+            # get metrics based on thresh
+            conf_matrix = confusion_matrix(
+                y_true=gt_labels, y_pred=pred_labels, labels=[0, 1]
+            )  # end confusion_matrix generation
+            tn, fp, fn, tp = conf_matrix.ravel()
+            far = get_far(fp=fp, tn=tn)
+            frr = get_frr(fn=fn, tp=tp)
+
+            # check if they are the same, to a precision level
+            if math.isclose(far, frr, abs_tol=10**-precision_sig_figs):
+                return (far, frr, threshold)
     raise Exception("Unable to find EER!!! (func: calc_eer())")
 
 
