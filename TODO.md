@@ -30,6 +30,8 @@ BioCapsule
 - write the tuning threshold target value & the far/frr for validation per tuned classifier!!!
 - write data extraction code for YouTube Faces, run all tests on theirs for more comparisons!!!
 
+- if time, re-run experiment to get results with a more precise threshold
+
 - test in more difficult scenarios? Test live? -> don't try to do too much
 
 ## Figures:
