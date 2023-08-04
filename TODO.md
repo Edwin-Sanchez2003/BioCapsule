@@ -33,6 +33,7 @@ BioCapsule
 - if time, re-run experiment to get results with a more precise threshold
 
 - test in more difficult scenarios? Test live? -> don't try to do too much
+- ^^^ Still super important though for really seeing how this system would work in real life on a laptop. Less so for mobile, though.
 
 ## Figures:
 - MMOC Comparison Table
