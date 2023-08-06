@@ -25,10 +25,15 @@ BioCapsule
     - ~~classification probabilities -> per session~~
 - start making figures & charts
 - start running tests for windowing
+    - get figure of one pos subject being auth w/diff windows
+    - get figure of one neg subject being auth w/diff windows
+    - x-axis time, y-axis the probability from the classifier
+    - put the threshold that was set for the user as a dotted horizontal line
 - start running other tests as needed
 - get timed results to see the extra time cost
 - write the tuning threshold target value & the far/frr for validation per tuned classifier!!!
 - write data extraction code for YouTube Faces, run all tests on theirs for more comparisons!!!
+- re-run the experiment for multi-rs, but this time store the rs & fuse w/the current subj's rs (this will get more accurate results for the Evil-Maid type attack. This will also result in more realistic testing and results that aren't counter-intuitive)
 
 - if time, re-run experiment to get results with a more precise threshold
 
