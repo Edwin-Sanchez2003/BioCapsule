@@ -65,12 +65,21 @@ def is_in_list(item, arr: list) -> bool:
 
 
 # gets the files in a directory and adds back their paths
-def get_files_with_paths(input_dir: str) -> "list[str]":
+def get_files_with_paths(
+    input_dir: str, ext: "list[str]" = [".json"]
+) -> "list[str]":
     # get results files in the results_dir
     file_names = os.listdir(input_dir)
 
+    # remove files that don't have the right extension
+    valid_files = []
+    for file_name in file_names:
+        _, ext = os.path.splitext(file_name)
+        if ext == ".json":
+            valid_files.append(file_name)
+
     # add back dir to get paths
     file_paths = []
-    for file_name in file_names:
+    for file_name in valid_files:
         file_paths.append(os.path.join(input_dir, file_name))
     return file_paths

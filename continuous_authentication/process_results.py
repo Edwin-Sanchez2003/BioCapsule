@@ -59,10 +59,10 @@ def print_mean_eer(results_dir: str) -> None:
 
         for loc in mobio_locations:
             print(
-                f"Location: {loc} | Mean EER: {results[loc]['mean_eer']} | Std Dev: {results[loc]['std_dev']}"
+                f"Location: {loc} | Mean EER: {results[loc]['mean_eer']*100}% | Std Dev: {results[loc]['std_dev']*100}%"
             )
         print(
-            f"Overall EER: {results['mean_eer']} | Overall Std Dev: {results['std_dev']}"
+            f"Overall EER: {results['mean_eer']*100}% | Overall Std Dev: {results['std_dev']*100}%"
         )
 
 
