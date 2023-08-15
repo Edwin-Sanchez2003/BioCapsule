@@ -10,6 +10,12 @@ BioCapsule
 * Get Results for different window sizes.
     * lock in a **few important starting params** & mess with the window size & averaging method.
     * main focus: bc/no bc, so lock all other variables in place (arface & single platform)
+    * to time & window size
+        * minimize time, maximize window. Time interval is more important so push that to its limit before using the window size.
+        * run the test without windowing and find the best time interval with no windowing
+        * then see how much shorter we can get the authentication before the system declines
+        * authentication
+        * simulate a user leaving the screen and getting replaced by an attacker.
 * ~~Re-Run the experiment with all using a single reference subject and all using a different reference subject, to verify bc performance~~
 
 
